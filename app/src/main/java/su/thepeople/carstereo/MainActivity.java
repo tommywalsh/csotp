@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import su.thepeople.carstereo.data.Album;
+import su.thepeople.carstereo.data.Band;
 
 /**
  * A full-screen activity that plays on-disk music files. This is intended to be used as a car stereo.
@@ -58,6 +59,15 @@ public class MainActivity extends AppCompatActivity {
             albums = new ArrayList<>(list);
         }
     }
+    private static final int ALBUM_CHOOSER = 1;
+
+    static class BandListWrapper implements Serializable {
+        ArrayList<Band> bands;
+        BandListWrapper(List<Band> list) {
+            bands = new ArrayList<>(list);
+        }
+    }
+    private static final int BAND_CHOOSER = 2;
 
     /**
      * This method is called to react to any incoming messages from other parts of the app. These messages typically
@@ -94,11 +104,18 @@ public class MainActivity extends AppCompatActivity {
             albumWidget.setTextOff(info.album == null ? "" : info.album.name);
         } else if (obj instanceof AlbumListWrapper) {
             AlbumListWrapper wrapper = (AlbumListWrapper) obj;
-            Intent intent = new Intent(MainActivity.this, AlbumChooser.class);
+            Intent intent = new Intent(MainActivity.this, ItemChooser.AlbumChooser.class);
             Bundle bundle = new Bundle();
             bundle.putSerializable("ALBUMS", wrapper.albums);
             intent.putExtras(bundle);
-            MainActivity.this.startActivityForResult(intent, 1);
+            MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
+        } else if (obj instanceof BandListWrapper) {
+            BandListWrapper wrapper = (BandListWrapper) obj;
+            Intent intent = new Intent(MainActivity.this, ItemChooser.BandChooser.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("BANDS", wrapper.bands);
+            intent.putExtras(bundle);
+            MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
         }
 
         // True here means that we have completed all required processing of the message.
@@ -136,8 +153,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         void fulfillAlbumListRequest(List<Album> albums) {
-            AlbumListWrapper wrapper = new AlbumListWrapper(albums);
-            sendMessage(wrapper);
+            sendMessage(new AlbumListWrapper(albums));
+        }
+
+        void fulfillBandListRequest(List<Band> bands) {
+            sendMessage(new BandListWrapper(bands));
         }
     }
 
@@ -159,7 +179,10 @@ public class MainActivity extends AppCompatActivity {
         songWidget = findViewById(R.id.song);
         songWidget.setSelected(true);
 
+        // Normal click locks/unlocks the current band. Long click allows custom selection of band.
         bandWidget.setOnCheckedChangeListener((view, checked) -> onBandModeToggle());
+        bandWidget.setOnLongClickListener(view -> onBandChooserRequest());
+
         albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
         albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
 
@@ -209,16 +232,41 @@ public class MainActivity extends AppCompatActivity {
         musicRequester.skipAhead();
     }
 
+    /**
+     * This is called when the user asks to pick an album. The data/control flow is a little convoluted....
+     *   1) This method is called to notify us of the user's request.
+     *   2) We send a message over to the music controller asking for a list of albums appropriate to the current song.
+     *   3) The controller will send us back a message containing the album list.
+     *   4) The album list is packaged into an Intent, which is used to start up an AlbumPicker
+     *   5) (if the user selects an album) The album picker sends back the ID of the album picked.
+     *   6) We send a message to the music controller asking it to "lock" on the selected album.
+     */
     private boolean onAlbumChooserRequest() {
         musicRequester.requestAlbumList();
         return true;
     }
 
+    /**
+     * This follows the same strategy as onAlbumChooserRequest()
+     */
+    private boolean onBandChooserRequest() {
+        musicRequester.requestBandList();
+        return true;
+    }
+
+    /**
+     * This method is called when the user has chosen an item (album or band) from an item picker. We need to relay
+     * the user's choice over to the music controller.
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
-            int albumId = result.getIntExtra("ALBUM_ID", -1);
-            musicRequester.lockExplicitAlbum(albumId);
+            int itemId = result.getIntExtra("ITEM_ID", -1);
+            if (requestCode == ALBUM_CHOOSER) {
+                musicRequester.lockExplicitAlbum(itemId);
+            } else if (requestCode == BAND_CHOOSER) {
+                musicRequester.lockExplicitBand(itemId);
+            }
         }
     }
 

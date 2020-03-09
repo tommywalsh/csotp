@@ -26,6 +26,8 @@ class MusicController {
     private static final int REPLENISH_PLAYLIST = 5;
     private static final int REQUEST_ALBUM_LIST = 6;
     private static final int LOCK_EXPLICIT_ALBUM = 7;
+    private static final int REQUEST_BAND_LIST = 8;
+    private static final int LOCK_EXPLICIT_BAND = 9;
 
     // An object that can send messages to the UI.
     private MainActivity.Updater uiUpdater;
@@ -91,6 +93,13 @@ class MusicController {
         mode = PlayMode.ALBUM;
         replenishPlaylist(true);
         uiUpdater.updatePlayMode(false, true);
+    }
+
+    private void lockExplicitBand(int bandId) {
+        songProvider = new SongProvider.BandProvider(database, bandId);
+        mode = PlayMode.BAND;
+        replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
+        uiUpdater.updatePlayMode(true, false);
     }
 
     // Should the system be playing music right now, or not?
@@ -170,6 +179,10 @@ class MusicController {
         void requestAlbumList() { sendMessage(REQUEST_ALBUM_LIST); }
 
         void lockExplicitAlbum(int albumId) { sendMessage(LOCK_EXPLICIT_ALBUM, albumId); }
+
+        void requestBandList() { sendMessage(REQUEST_BAND_LIST); }
+
+        void lockExplicitBand(int bandId) { sendMessage(LOCK_EXPLICIT_BAND, bandId); }
     }
 
     private Requester requester = new Requester();
@@ -200,9 +213,18 @@ class MusicController {
                 break;
             case REQUEST_ALBUM_LIST:
                 sendAlbumList();
+                break;
             case LOCK_EXPLICIT_ALBUM:
                 int albumId = message.arg2;
                 lockExplicitAlbum(albumId);
+                break;
+            case REQUEST_BAND_LIST:
+                sendBandList();
+                break;
+            case LOCK_EXPLICIT_BAND:
+                int bandId = message.arg2;
+                lockExplicitBand(bandId);
+                break;
             default:
                 // We should never get here, so we should assert, but asserts are apparently unreliable, so do nothing.
                 break;
@@ -216,6 +238,10 @@ class MusicController {
         int bandId = musicPlayer.getCurrentSong().band.uid;
         List<Album> albums = database.albumDAO().getAllForBand(bandId);
         uiUpdater.fulfillAlbumListRequest(albums);
+    }
+
+    private void sendBandList() {
+        uiUpdater.fulfillBandListRequest(database.bandDAO().getAll());
     }
 
     private List<SongInfo> getInfoForSongs(List<Song> songs) {

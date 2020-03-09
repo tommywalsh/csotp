@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Car Stereo of The People</string>
-    <string name="title_activity_album_chooser">Choose an Album</string>
+    <string name="title_activity_item_chooser">Choose an Item</string>
 </resources>

@@ -4,11 +4,13 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
+
 /**
  * Simple POJO class representing a Band
  */
 @Entity
-public class Band {
+public class Band implements Serializable {
 
     @PrimaryKey(autoGenerate = true)
     public int uid;

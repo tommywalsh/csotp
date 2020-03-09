@@ -2,13 +2,13 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/albumPickerLayout"
+    android:id="@+id/itemPickerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".AlbumChooser">
+    tools:context=".ItemChooser">
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/albumRecycler"
+        android:id="@+id/itemRecycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </FrameLayout>
