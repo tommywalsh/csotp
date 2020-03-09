@@ -2,18 +2,22 @@ package su.thepeople.carstereo;
 
 import android.annotation.SuppressLint;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import su.thepeople.carstereo.R;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import su.thepeople.carstereo.data.Album;
 
 /**
  * A full-screen activity that plays on-disk music files. This is intended to be used as a car stereo.
@@ -46,6 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private static class PlayMode {
         boolean isBandLocked;
         boolean isAlbumLocked;
+    }
+
+    static class AlbumListWrapper implements Serializable {
+        ArrayList<Album> albums;
+        AlbumListWrapper(List<Album> list) {
+            albums = new ArrayList<>(list);
+        }
     }
 
     /**
@@ -81,6 +92,13 @@ public class MainActivity extends AppCompatActivity {
             albumWidget.setText(info.album == null ? "" : info.album.name);
             albumWidget.setTextOn(info.album == null ? "" : info.album.name);
             albumWidget.setTextOff(info.album == null ? "" : info.album.name);
+        } else if (obj instanceof AlbumListWrapper) {
+            AlbumListWrapper wrapper = (AlbumListWrapper) obj;
+            Intent intent = new Intent(MainActivity.this, AlbumChooser.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("ALBUMS", wrapper.albums);
+            intent.putExtras(bundle);
+            MainActivity.this.startActivityForResult(intent, 1);
         }
 
         // True here means that we have completed all required processing of the message.
@@ -116,8 +134,18 @@ public class MainActivity extends AppCompatActivity {
         void updateSongInfo(SongInfo currentSong) {
             sendMessage(currentSong);
         }
+
+        void fulfillAlbumListRequest(List<Album> albums) {
+            AlbumListWrapper wrapper = new AlbumListWrapper(albums);
+            sendMessage(wrapper);
+        }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Utils.hideSystemUI(this, R.id.mainTable);
+    }
 
     @SuppressLint("InlinedApi")
     @Override
@@ -126,14 +154,6 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_fullscreen);
 
-        // This app is intended to completely take over the devide. So, go full screen, hide OS controls, etc.
-        findViewById(R.id.mainTable).setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
         bandWidget = findViewById(R.id.band);
         albumWidget = findViewById(R.id.album);
         songWidget = findViewById(R.id.song);
@@ -141,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
 
         bandWidget.setOnCheckedChangeListener((view, checked) -> onBandModeToggle());
         albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
+        albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
 
         playPauseWidget = findViewById(R.id.playPause);
         playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
@@ -186,6 +207,19 @@ public class MainActivity extends AppCompatActivity {
 
     public void onNextSongRequest() {
         musicRequester.skipAhead();
+    }
+
+    private boolean onAlbumChooserRequest() {
+        musicRequester.requestAlbumList();
+        return true;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent result) {
+        if (resultCode == RESULT_OK) {
+            int albumId = result.getIntExtra("ALBUM_ID", -1);
+            musicRequester.lockExplicitAlbum(albumId);
+        }
     }
 
     @Override

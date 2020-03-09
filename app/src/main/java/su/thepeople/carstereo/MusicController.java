@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
+import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
@@ -23,6 +24,8 @@ class MusicController {
     private static final int TOGGLE_BAND_MODE = 3;
     private static final int TOGGLE_ALBUM_MODE = 4;
     private static final int REPLENISH_PLAYLIST = 5;
+    private static final int REQUEST_ALBUM_LIST = 6;
+    private static final int LOCK_EXPLICIT_ALBUM = 7;
 
     // An object that can send messages to the UI.
     private MainActivity.Updater uiUpdater;
@@ -83,6 +86,13 @@ class MusicController {
         uiUpdater.updatePlayMode(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
     }
 
+    private void lockExplicitAlbum(int albumId) {
+        songProvider = new SongProvider.AlbumProvider(database, albumId);
+        mode = PlayMode.ALBUM;
+        replenishPlaylist(true);
+        uiUpdater.updatePlayMode(false, true);
+    }
+
     // Should the system be playing music right now, or not?
     private enum PlayState {
         PLAYING,
@@ -125,9 +135,14 @@ class MusicController {
         private volatile Handler handler;
 
         private void sendMessage(int signal) {
+            sendMessage(signal, 0);
+        }
+
+        private void sendMessage(int signal, int extra) {
             if (handler != null) {
                 Message msg = Message.obtain();
                 msg.arg1 = signal;
+                msg.arg2 = extra;
                 handler.sendMessage(msg);
             }
         }
@@ -151,6 +166,10 @@ class MusicController {
         void replenishPlaylist() {
             sendMessage(REPLENISH_PLAYLIST);
         }
+
+        void requestAlbumList() { sendMessage(REQUEST_ALBUM_LIST); }
+
+        void lockExplicitAlbum(int albumId) { sendMessage(LOCK_EXPLICIT_ALBUM, albumId); }
     }
 
     private Requester requester = new Requester();
@@ -179,6 +198,11 @@ class MusicController {
             case REPLENISH_PLAYLIST:
                 replenishPlaylist(false);
                 break;
+            case REQUEST_ALBUM_LIST:
+                sendAlbumList();
+            case LOCK_EXPLICIT_ALBUM:
+                int albumId = message.arg2;
+                lockExplicitAlbum(albumId);
             default:
                 // We should never get here, so we should assert, but asserts are apparently unreliable, so do nothing.
                 break;
@@ -188,6 +212,11 @@ class MusicController {
         return true;
     }
 
+    private void sendAlbumList() {
+        int bandId = musicPlayer.getCurrentSong().band.uid;
+        List<Album> albums = database.albumDAO().getAllForBand(bandId);
+        uiUpdater.fulfillAlbumListRequest(albums);
+    }
 
     private List<SongInfo> getInfoForSongs(List<Song> songs) {
         return songs.stream().map(song -> {
