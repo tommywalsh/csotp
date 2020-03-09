@@ -1,0 +1,2 @@
+rootProject.name='Car Stereo of the People'
+include ':app'
