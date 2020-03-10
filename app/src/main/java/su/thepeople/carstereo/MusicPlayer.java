@@ -44,8 +44,9 @@ class MusicPlayer {
         this.uiUpdater = uiUpdater;
         this.controlRequest = controlRequest;
         androidPlayer = new MediaPlayer();
-        androidPlayer.setLooping(true);
+        androidPlayer.setLooping(false);
         androidPlayer.setOnPreparedListener(mp -> onPrepared());
+        androidPlayer.setOnCompletionListener(mp -> onSongCompleted());
     }
 
     SongInfo getCurrentSong() {
@@ -59,6 +60,15 @@ class MusicPlayer {
     private void onPrepared() {
         if (shouldBePlaying) {
             androidPlayer.start();
+        }
+    }
+
+    /**
+     * This method will be called when the Android player has finished playing a song.
+     */
+    private void onSongCompleted() {
+        if (shouldBePlaying) {
+            prepareNextSong();
         }
     }
 
