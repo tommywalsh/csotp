@@ -2,7 +2,11 @@ package su.thepeople.carstereo;
 
 import android.annotation.SuppressLint;
 
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -44,9 +48,11 @@ public class MainActivity extends AppCompatActivity {
     // Other parts of the app that we need to communicate with.
     private MusicController.Requester musicRequester;
     private LooperThread musicThread;
+    private ScreenLocker screenLocker;
 
     // This object handles incoming messages from other parts of the app.
     private Handler handler;
+
 
     // Simple data types for use in incoming messages.
     private static class PlayMode {
@@ -179,12 +185,32 @@ public class MainActivity extends AppCompatActivity {
         Utils.hideSystemUI(this, R.id.mainTable);
     }
 
+    private class BluetoothReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                //Device is now connected. Keep the screen on
+                screenLocker.ensureScreenOn();
+            } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                //Device has disconnected. Pause (if running), and allow the screen to turn off
+                musicRequester.forcePause();
+                screenLocker.allowScreenToShutOff();
+            }
+        }
+    }
     @SuppressLint("InlinedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        this.registerReceiver(new BluetoothReceiver(), filter);
+
         setContentView(R.layout.activity_fullscreen);
+        screenLocker = new ScreenLocker(this);
 
         bandWidget = findViewById(R.id.band);
         albumWidget = findViewById(R.id.album);

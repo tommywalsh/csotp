@@ -77,16 +77,16 @@ long-press on the band or album button and then select your choice from the list
 This is a more complicated operation that requires a little bit of attention, so wait until you're
 at a red light to do this, okay?
 
-## But, why? (A rant/manifesto)
+# But, why? (A rant/manifesto)
 
 Why write a custom player? Why not just use something that's already available? Basically, 
 because I could find nothing that works acceptably.
 
-### Why not use a purpose-built car stereo?
+## Why not use a purpose-built car stereo?
 
 Because they are very expensive. And, the UIs are absolutely terrible (and not customizable).
 
-### Why use Android?
+## Why use Android?
 
 Since this is intended to play music files from an SD card, and since I needed a custom-written 
 interface, I cannot use something like an Arduino or custom hardware... at least not easily.
@@ -112,11 +112,11 @@ only need to add a simple 12V Bluetooth amplifier, which can be had for very che
 
 
 
-### Why not use an existing Android player?
+## Why not use an existing Android player?
 
 Here are some aspects I find problematic about most currently-available Android players:
 
-#### Tiny controls
+### Tiny controls
 
 When I want to skip forward one song, I want to do it **right now**. I don't want to have to 
 navigate or scroll anywhere to find the controls. I don't want to have to carefully aim my finger 
@@ -128,7 +128,7 @@ rest of the screen to stuff I don't care about, like grids full of album art, or
  even ads. It seems that these are geared towards people who, for some reason, want to "interact" 
  with their music on a screen. I don't want to do that. I just want to listen to music.
 
-#### Inconsistent information
+### Inconsistent information
 
 Existing Android players use in-file tags to attempt to organize music metadata. 
 
@@ -159,7 +159,7 @@ original albums.
 CD/vinyl/cassette track ordering).
  
 
-#### Streaming-oriented UIs
+### Streaming-oriented UIs
 
 Some players really really really want me to stream music. 
 
@@ -186,7 +186,7 @@ The first option is obviously vastly superior. I'd almost need to be insane to c
 every time I open Google Play Music, it brings me to a screen full of streamable stuff instead of
 to my on-disk collection. I have to waste time navigating away from that every single time.
 
-#### Complicated ways of doing simple things
+### Complicated ways of doing simple things
 
 Here's a situation that comes up often. I'm listening to songs in a random order, and eventually 
 something comes on that I want to listen to more of. Let's say Guadalcanal Diary's "Under The Yoke" 
@@ -205,7 +205,7 @@ safely while driving.
 On top of all that inconvenience, it still annoyingly stops playing the current song, and jumps
 back to the beginning of the album, instead of just continuing to play. 
 
-#### Leaky abstractions
+### Leaky abstractions
 
 I do understand that music-playing software has concepts like "queues", "playlists", "shuffle",
 "repeat", and "consume".  But, as a user, I rarely care about such things, and I don't usually want
@@ -217,5 +217,5 @@ to have to separately adjust multiple options like this all the time.
 
 I've been on this planet almost fifty years, and I don't think I've ever run into a 
 situation where I felt it was appropriate to shuffle an album. And, yet music players treat
-"shuffle" as if it were a permanent user preference to be preserved across mutliple contexts.
+"shuffle" as if it were a long-lived user preference to be preserved across all contexts.
 

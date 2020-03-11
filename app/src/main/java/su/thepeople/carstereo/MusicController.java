@@ -29,6 +29,7 @@ class MusicController {
     private static final int LOCK_EXPLICIT_ALBUM = 7;
     private static final int REQUEST_BAND_LIST = 8;
     private static final int LOCK_EXPLICIT_BAND = 9;
+    private static final int FORCE_PAUSE = 10;
 
     // An object that can send messages to the UI.
     private MainActivity.Updater uiUpdater;
@@ -121,6 +122,12 @@ class MusicController {
         uiUpdater.updatePlayState(playState == PlayState.PLAYING);
     }
 
+    private void forcePause() {
+        musicPlayer.pause();
+        playState = PlayState.PAUSED;
+        uiUpdater.updatePlayState(false);
+    }
+
     private void skipAhead() {
         musicPlayer.prepareNextSong();
     }
@@ -184,6 +191,8 @@ class MusicController {
         void requestBandList() { sendMessage(REQUEST_BAND_LIST); }
 
         void lockExplicitBand(int bandId) { sendMessage(LOCK_EXPLICIT_BAND, bandId); }
+
+        void forcePause() { sendMessage(FORCE_PAUSE); }
     }
 
     private Requester requester = new Requester();
@@ -226,6 +235,8 @@ class MusicController {
                 int bandId = message.arg2;
                 lockExplicitBand(bandId);
                 break;
+            case FORCE_PAUSE:
+                forcePause();
             default:
                 // We should never get here, so we should assert, but asserts are apparently unreliable, so do nothing.
                 break;
