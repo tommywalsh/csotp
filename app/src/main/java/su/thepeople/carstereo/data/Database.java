@@ -25,7 +25,7 @@ public abstract class Database extends RoomDatabase {
     private static volatile Database instance = null;
     private static Thread workerThread = null;
 
-    public static Database getDatabase(Context context) {
+    public static Database getDatabase(Context context) throws NoLibraryException {
         // Use a singleton Database for the entire application.
         if (instance == null) {
             synchronized(Database.class) {
@@ -42,21 +42,29 @@ public abstract class Database extends RoomDatabase {
                         @Override
                         public void onCreate(@NonNull SupportSQLiteDatabase db) {
                             super.onCreate(db);
-
-                            workerThread = new Thread(() -> {
-                                MusicScanner scanner = new MusicScanner(instance);
-                                scanner.scan();
-                            });
-                            workerThread.start();
                         }
                     };
 
                     instance = Room.databaseBuilder(context.getApplicationContext(), Database.class, "dbotp")
                             .addCallback(callback)
                             .build();
+
+                    int bandCount = instance.bandDAO().getAll().size();
+                    if (bandCount == 0) {
+                        // Database has not been initialized yet!
+                        MusicScanner scanner = new MusicScanner(context, instance);
+                        scanner.scan();
+                    }
+                    // TODO: show error message if we could not find any bands
                 }
             }
         }
+
+        if (instance.bandDAO().getAll().size() == 0) {
+            // Although we've already completed the scan, we still have no bands!
+            throw new NoLibraryException();
+        }
+
         return instance;
     }
 }

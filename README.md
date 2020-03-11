@@ -27,8 +27,10 @@ use as the preset push buttons on old mechanical car radios.
 
 ### How to store music
 
-All music needs to be stored on an SD card in a single directory tree. Each song that is part of
-an album should be stored in a path like this:
+All music needs to be stored on an SD card in a single directory tree. The top-level of this tree
+needs to be named "mcotp", and should be at the root level of your SD card.
+
+Each song that is part of an album should be stored in a path like this:
 ```
 /storage/0000-0000/mcotp/Band Name/Album Name/## - Song Title.ext
 ```
@@ -67,9 +69,13 @@ playing the current song, and then follow with whatever song comes next on the a
 around to the beginning of the album at the end). Again, if you press this button a second time, it
 will switch back to entire-collection mode.
 
-There may be future enhancements to allow picking arbitrary bands/albums, but for now, you can
-only lock on the currently-playing band/album.
+### More complicated operations
 
+You can also enter band or album mode for something you are not currently listening to. To do this,
+long-press on the band or album button and then select your choice from the list.
+
+This is a more complicated operation that requires a little bit of attention, so wait until you're
+at a red light to do this, okay?
 
 ## But, why? (A rant/manifesto)
 
@@ -139,12 +145,12 @@ totally different Replacements albums, named "Tim", "Tim (1985)", and "Tim [rema
 
 * Metadata with negative value. This takes up screen real estate, and adds complexity in navigation,
  while providing zero benefit. For example, players will try to organize by genre, but...
-** I see a genre called "80s", which has exactly one song in it, even though I have hundreds of 
+    * I see a genre called "80s", which has exactly one song in it, even though I have hundreds of 
 albums from the 1980s.
-** Here are some separate genres I have listed: "Country-Rock, Singer/Songwriter, Folk-Rock, AlbumRock",
+    * Here are some separate genres I see listed: "Country-Rock, Singer/Songwriter, Folk-Rock, AlbumRock",
 "Country/Rock", "CountryRock", "Album Rock", "Country-Rock, Singer/Songwriter". Each of these has
 some Neil Young songs in them. There are probably more.
-** Here are some release date tags that are all treated as totally distinct: "1989", "89", "Jan 15, 1989".
+    * Here are some release date tags that are all treated as totally distinct: "1989", "89", "Jan 15, 1989".
 
 * Some songs are associated with "Greatest Hits" albums, while others are associated with their 
 original albums.

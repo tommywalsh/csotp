@@ -1,5 +1,6 @@
 package su.thepeople.carstereo;
 
+import android.content.Context;
 import android.util.Log;
 
 import su.thepeople.carstereo.data.Album;
@@ -9,25 +10,56 @@ import su.thepeople.carstereo.data.Song;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Optional;
 
 /**
- * Somewhat hacky class to scan for on-disk music.
+ * Class to scan for on-disk music.
  *
- * This class makes all sorts of assumptions about how the music files are laid out. Some of them are reasonable, and
- * some are totally unreasonable.
- *
+ * This class assumes that there will be a directory called "mcotp", in which the entire music library is stored. This
+ * mcotp directory should be in the root level of an SD card. Failing that, it might work to put the directory as a
+ * sibling to whereever Android will put this application's media directories, or as a sibling to one of the media
+ * directories' parents.
  */
 public class MusicScanner {
 
     private Database database;
+    private Context context;
 
-    public MusicScanner(Database database) {
+    public MusicScanner(Context context, Database database) {
         this.database = database;
+        this.context = context;
     }
 
-    /*
-     * This function must not be run on the UI thread!
-     */
+
+    private boolean containsMcotpDir(File maybeDir) {
+        Log.d(LOG_TAG, String.format("Considering %s", maybeDir.toString()));
+        if (maybeDir.isDirectory()) {
+            File[] dirContents = maybeDir.listFiles();
+            if (dirContents != null) {
+                for (File item : maybeDir.listFiles()) {
+                    if (item.isDirectory() && item.getName().equals("mcotp")) {
+                        Log.d(LOG_TAG, "FOUND MCOTP!");
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public Optional<File> findMcotpRoot() {
+        for (File mediaDir : context.getExternalMediaDirs()) {
+            File candidateDir = mediaDir;
+            while (candidateDir != null) {
+                if (containsMcotpDir(candidateDir)) {
+                    return Optional.of(candidateDir);
+                }
+                candidateDir = candidateDir.getParentFile();
+            }
+        }
+        return Optional.empty();
+    }
+
     private static String LOG_TAG = "Music Scanner";
     private void scanSdcard(File sdcardRoot) {
         Log.d(LOG_TAG, String.format("Scanning %s", sdcardRoot.getAbsolutePath()));
@@ -72,10 +104,7 @@ public class MusicScanner {
     }
 
     public void scan() {
-        // TODO: Find portable way to find MCotP root
-        String hardCodedSdcardRoot = "/storage/0000-0000";
-        File sdcard = new File(hardCodedSdcardRoot);
-        scanSdcard(sdcard);
-        Log.d(LOG_TAG, "Completed MCotP scan");
+        Optional<File> mcotpRoot = findMcotpRoot();
+        mcotpRoot.ifPresent(root -> scanSdcard(root));
     }
 }

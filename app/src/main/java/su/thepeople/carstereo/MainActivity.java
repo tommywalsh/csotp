@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private ToggleButton albumWidget;
     private TextView songWidget;
     private ImageButton playPauseWidget;
+    private ImageButton nextSongWidget;
 
     // Other parts of the app that we need to communicate with.
     private MusicController.Requester musicRequester;
@@ -91,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 playPauseWidget.setImageResource(R.drawable.ic_play_button);
             }
-            // TODO: update button
         } else if (obj instanceof SongInfo) {
             // A new song is being played. Update the text on the screen to match.
             SongInfo info = (SongInfo) obj;
@@ -116,6 +116,14 @@ public class MainActivity extends AppCompatActivity {
             bundle.putSerializable("BANDS", wrapper.bands);
             intent.putExtras(bundle);
             MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
+        } else if (obj instanceof Exception) {
+            // Currently we only have one type of exception. This code will need improvement if/when that changes.
+            playPauseWidget.setEnabled(false);
+            nextSongWidget.setEnabled(false);
+            bandWidget.setEnabled(false);
+            albumWidget.setEnabled(false);
+            bandWidget.setText(R.string.error);
+            songWidget.setText(R.string.no_library);
         }
 
         // True here means that we have completed all required processing of the message.
@@ -159,6 +167,10 @@ public class MainActivity extends AppCompatActivity {
         void fulfillBandListRequest(List<Band> bands) {
             sendMessage(new BandListWrapper(bands));
         }
+
+        void reportException(Exception e) {
+            sendMessage(e);
+        }
     }
 
     @Override
@@ -188,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
 
         playPauseWidget = findViewById(R.id.playPause);
         playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
-        ImageButton nextSongWidget = findViewById(R.id.next);
+        nextSongWidget = findViewById(R.id.next);
         nextSongWidget.setOnClickListener(view -> onNextSongRequest());
 
         // Set up incoming messages.

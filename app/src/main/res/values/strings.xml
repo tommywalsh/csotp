@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Car Stereo of The People</string>
     <string name="title_activity_item_chooser">Choose an Item</string>
+    <string name="scanning_message">Now Scanning</string>
+    <string name="please_wait">Hold your horses there, Charlie!</string>
+    <string name="error">Error</string>
+    <string name="no_library">Cannot find music library!</string>
 </resources>

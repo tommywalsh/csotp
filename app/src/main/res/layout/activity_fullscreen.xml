@@ -18,10 +18,10 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="ToggleButton"
+            android:text="@string/scanning_message"
             android:textAllCaps="false"
-            android:textOff="Band Name"
-            android:textOn="Band Name"
+            android:textOff="@string/scanning_message"
+            android:textOn="@string/scanning_message"
             android:textSize="24sp" />
     </TableRow>
 
@@ -46,7 +46,7 @@
                 android:marqueeRepeatLimit="marquee_forever"
                 android:scrollHorizontally="true"
                 android:singleLine="true"
-                android:text="Song Title"
+                android:text="@string/please_wait"
                 android:textSize="30sp" />
         </LinearLayout>
 
@@ -62,10 +62,9 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="ToggleButton"
             android:textAllCaps="false"
-            android:textOff="Album Title"
-            android:textOn="Album Title"
+            android:textOff=" "
+            android:textOn=" "
             android:textSize="24sp" />
     </TableRow>
 

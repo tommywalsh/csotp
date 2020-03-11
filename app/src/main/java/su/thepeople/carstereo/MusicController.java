@@ -8,6 +8,7 @@ import android.os.Message;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
+import su.thepeople.carstereo.data.NoLibraryException;
 import su.thepeople.carstereo.data.Song;
 
 import java.util.List;
@@ -263,8 +264,12 @@ class MusicController {
     void setupHandlers(Looper looper) {
         requester.handler = new Handler(looper, this::handleMessage);
         musicPlayer = new MusicPlayer(uiUpdater, requester);
-        database = Database.getDatabase(context);
-        songProvider = new SongProvider.ShuffleProvider(database);
-        replenishPlaylist(true);
+        try {
+            database = Database.getDatabase(context);
+            songProvider = new SongProvider.ShuffleProvider(database);
+            replenishPlaylist(true);
+        } catch (NoLibraryException e) {
+            uiUpdater.reportException(e);
+        }
     }
 }
