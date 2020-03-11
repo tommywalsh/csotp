@@ -32,7 +32,7 @@ class MusicController {
     private static final int FORCE_PAUSE = 10;
 
     // An object that can send messages to the UI.
-    private MainActivity.Updater uiUpdater;
+    private MainActivityAPI mainActivity;
 
     // Helper object which knows how to dump songs into the queued playlist.
     private SongProvider songProvider;
@@ -43,8 +43,8 @@ class MusicController {
     private Context context;
     private Database database;
 
-    MusicController(MainActivity.Updater updater, Context context) {
-        uiUpdater = updater;
+    MusicController(MainActivityAPI mainActivity, Context context) {
+        this.mainActivity = mainActivity;
         this.context = context;
     }
 
@@ -70,7 +70,7 @@ class MusicController {
                 replenishPlaylist(false);
             }
         }
-        uiUpdater.updatePlayMode(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
+        mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
     }
 
     private void toggleAlbumMode() {
@@ -87,21 +87,21 @@ class MusicController {
                 replenishPlaylist(false);
             }
         }
-        uiUpdater.updatePlayMode(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
+        mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
     }
 
     private void lockExplicitAlbum(int albumId) {
         songProvider = new SongProvider.AlbumProvider(database, albumId);
         mode = PlayMode.ALBUM;
         replenishPlaylist(true);
-        uiUpdater.updatePlayMode(false, true);
+        mainActivity.notifyPlayModeChange(false, true);
     }
 
     private void lockExplicitBand(int bandId) {
         songProvider = new SongProvider.BandProvider(database, bandId);
         mode = PlayMode.BAND;
         replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
-        uiUpdater.updatePlayMode(true, false);
+        mainActivity.notifyPlayModeChange(true, false);
     }
 
     // Should the system be playing music right now, or not?
@@ -119,13 +119,13 @@ class MusicController {
             musicPlayer.pause();
             playState = PlayState.PAUSED;
         }
-        uiUpdater.updatePlayState(playState == PlayState.PLAYING);
+        mainActivity.notifyPlayStateChange(playState == PlayState.PLAYING);
     }
 
     private void forcePause() {
         musicPlayer.pause();
         playState = PlayState.PAUSED;
-        uiUpdater.updatePlayState(false);
+        mainActivity.notifyPlayStateChange(false);
     }
 
     private void skipAhead() {
@@ -249,11 +249,11 @@ class MusicController {
     private void sendAlbumList() {
         int bandId = musicPlayer.getCurrentSong().band.uid;
         List<Album> albums = database.albumDAO().getAllForBand(bandId);
-        uiUpdater.fulfillAlbumListRequest(albums);
+        mainActivity.fulfillAlbumListRequest(albums);
     }
 
     private void sendBandList() {
-        uiUpdater.fulfillBandListRequest(database.bandDAO().getAll());
+        mainActivity.fulfillBandListRequest(database.bandDAO().getAll());
     }
 
     private List<SongInfo> getInfoForSongs(List<Song> songs) {
@@ -274,13 +274,13 @@ class MusicController {
      */
     void setupHandlers(Looper looper) {
         requester.handler = new Handler(looper, this::handleMessage);
-        musicPlayer = new MusicPlayer(uiUpdater, requester);
+        musicPlayer = new MusicPlayer(mainActivity, requester);
         try {
             database = Database.getDatabase(context);
             songProvider = new SongProvider.ShuffleProvider(database);
             replenishPlaylist(true);
         } catch (NoLibraryException e) {
-            uiUpdater.reportException(e);
+            mainActivity.reportException(e);
         }
     }
 }

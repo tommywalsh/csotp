@@ -24,7 +24,7 @@ class MusicPlayer {
     private boolean shouldBePlaying = false;
 
     // Object that will send update messages to the UI.
-    private MainActivity.Updater uiUpdater;
+    private MainActivityAPI mainActivity;
 
     // Object that will send requests to the controller.
     private MusicController.Requester controlRequest;
@@ -40,8 +40,8 @@ class MusicPlayer {
      */
     private List<SongInfo> playlist;
 
-    MusicPlayer(MainActivity.Updater uiUpdater, MusicController.Requester controlRequest) {
-        this.uiUpdater = uiUpdater;
+    MusicPlayer(MainActivityAPI mainActivity, MusicController.Requester controlRequest) {
+        this.mainActivity = mainActivity;
         this.controlRequest = controlRequest;
         androidPlayer = new MediaPlayer();
         androidPlayer.setLooping(false);
@@ -96,7 +96,7 @@ class MusicPlayer {
                 androidPlayer.reset();
                 androidPlayer.setDataSource(songInfo.song.fullPath);
                 currentSong = songInfo;
-                uiUpdater.updateSongInfo(songInfo);
+                mainActivity.notifyCurrentSongChange(songInfo);
                 androidPlayer.prepareAsync();
             } catch (IOException e) {
                 /*

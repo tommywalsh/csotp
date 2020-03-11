@@ -8,18 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
 
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
@@ -50,79 +45,68 @@ public class MainActivity extends AppCompatActivity {
     private LooperThread musicThread;
     private ScreenLocker screenLocker;
 
-    // This object handles incoming messages from other parts of the app.
-    private Handler handler;
-
-
-    // Simple data types for use in incoming messages.
-    private static class PlayMode {
-        boolean isBandLocked;
-        boolean isAlbumLocked;
-    }
-
-    static class AlbumListWrapper implements Serializable {
-        ArrayList<Album> albums;
-        AlbumListWrapper(List<Album> list) {
-            albums = new ArrayList<>(list);
-        }
-    }
+    // Activity IDs for the sub-activities that we expect to supply us with a result.
     private static final int ALBUM_CHOOSER = 1;
-
-    static class BandListWrapper implements Serializable {
-        ArrayList<Band> bands;
-        BandListWrapper(List<Band> list) {
-            bands = new ArrayList<>(list);
-        }
-    }
     private static final int BAND_CHOOSER = 2;
 
-    /**
-     * This method is called to react to any incoming messages from other parts of the app. These messages typically
-     * will be coming from a different thread.
-     */
-    private boolean handleMessage(Message message) {
-        Object obj = message.obj;
+    // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
+    RecursionLock callbackLock = new RecursionLock();
 
-        if (obj instanceof PlayMode) {
-            // The play mode has changed. Update the on-screen toggle buttons to reflect the new mode.
-            PlayMode mode = (PlayMode) obj;
-            toggleShortCircuit = true;
-            bandWidget.setChecked(mode.isBandLocked);
-            albumWidget.setChecked(mode.isAlbumLocked);
-            toggleShortCircuit = false;
-        } else if (obj instanceof Boolean) {
-            // Music has started or stopped playing. Update the on-screen play/pause button to match.
-            boolean isPlaying = (Boolean) obj;
+    /**
+     * This helper class defines what happens when other parts of the app send us a message.
+     */
+    private class MainActivityAPIImpl extends MainActivityAPI {
+
+        @Override
+        protected void onPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
+            callbackLock.run(() -> {
+                bandWidget.setChecked(isBandLocked);
+                albumWidget.setChecked(isAlbumLocked);
+            });
+        }
+
+        @Override
+        protected void onPlayStateChange(boolean isPlaying) {
             if (isPlaying) {
                 playPauseWidget.setImageResource(R.drawable.ic_pause_button);
             } else {
                 playPauseWidget.setImageResource(R.drawable.ic_play_button);
             }
-        } else if (obj instanceof SongInfo) {
-            // A new song is being played. Update the text on the screen to match.
-            SongInfo info = (SongInfo) obj;
-            songWidget.setText(info.song.name);
-            bandWidget.setText(info.band.name);
-            bandWidget.setTextOn(info.band.name);
-            bandWidget.setTextOff(info.band.name);
-            albumWidget.setText(info.album == null ? "" : info.album.name);
-            albumWidget.setTextOn(info.album == null ? "" : info.album.name);
-            albumWidget.setTextOff(info.album == null ? "" : info.album.name);
-        } else if (obj instanceof AlbumListWrapper) {
-            AlbumListWrapper wrapper = (AlbumListWrapper) obj;
-            Intent intent = new Intent(MainActivity.this, ItemChooser.AlbumChooser.class);
-            Bundle bundle = new Bundle();
-            bundle.putSerializable("ALBUMS", wrapper.albums);
-            intent.putExtras(bundle);
-            MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
-        } else if (obj instanceof BandListWrapper) {
-            BandListWrapper wrapper = (BandListWrapper) obj;
+        }
+
+        @Override
+        protected void onCurrentSongChange(SongInfo currentSong) {
+            songWidget.setText(currentSong.song.name);
+            bandWidget.setText(currentSong.band.name);
+            bandWidget.setTextOn(currentSong.band.name);
+            bandWidget.setTextOff(currentSong.band.name);
+            albumWidget.setText(currentSong.album == null ? "" : currentSong.album.name);
+            albumWidget.setTextOn(currentSong.album == null ? "" : currentSong.album.name);
+            albumWidget.setTextOff(currentSong.album == null ? "" : currentSong.album.name);
+        }
+
+        @Override
+        protected void onBandListResponse(ArrayList<Band> bands) {
+            // The only reason we would have asked for a band list is to open the band chooser.
             Intent intent = new Intent(MainActivity.this, ItemChooser.BandChooser.class);
             Bundle bundle = new Bundle();
-            bundle.putSerializable("BANDS", wrapper.bands);
+            bundle.putSerializable("BANDS", bands);
             intent.putExtras(bundle);
             MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
-        } else if (obj instanceof Exception) {
+        }
+
+        @Override
+        protected void onAlbumListResponse(ArrayList<Album> albums) {
+            // The only reason we would have asked for an album list is to open the album chooser.
+            Intent intent = new Intent(MainActivity.this, ItemChooser.AlbumChooser.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("ALBUMS", albums);
+            intent.putExtras(bundle);
+            MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
+        }
+
+        @Override
+        protected void onExceptionReport(Exception exception) {
             // Currently we only have one type of exception. This code will need improvement if/when that changes.
             playPauseWidget.setEnabled(false);
             nextSongWidget.setEnabled(false);
@@ -131,60 +115,12 @@ public class MainActivity extends AppCompatActivity {
             bandWidget.setText(R.string.error);
             songWidget.setText(R.string.no_library);
         }
-
-        // True here means that we have completed all required processing of the message.
-        return true;
     }
+
 
     /**
-     * Helper class used by other parts of the app to send messages to this MainActivity.
+     * This handles turning off and on in response to bluetooth connections.
      */
-    class Updater {
-
-        // Helper method to send one arbitrary object to this class as a message.
-        private void sendMessage(Object object) {
-            Message msg = Message.obtain();
-            msg.obj = object;
-            handler.sendMessage(msg);
-        }
-
-        // Notify that the play mode has changed.
-        void updatePlayMode(boolean isBandLocked, boolean isAlbumLocked) {
-            PlayMode mode = new PlayMode();
-            mode.isBandLocked = isBandLocked;
-            mode.isAlbumLocked = isAlbumLocked;
-            sendMessage(mode);
-        }
-
-        // Notify that the play state has changed.
-        void updatePlayState(boolean isPlaying) {
-            sendMessage(isPlaying);
-        }
-
-        // Notify that the currently-playing song has changed.
-        void updateSongInfo(SongInfo currentSong) {
-            sendMessage(currentSong);
-        }
-
-        void fulfillAlbumListRequest(List<Album> albums) {
-            sendMessage(new AlbumListWrapper(albums));
-        }
-
-        void fulfillBandListRequest(List<Band> bands) {
-            sendMessage(new BandListWrapper(bands));
-        }
-
-        void reportException(Exception e) {
-            sendMessage(e);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Utils.hideSystemUI(this, R.id.mainTable);
-    }
-
     private class BluetoothReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -199,67 +135,65 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
     @SuppressLint("InlinedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Set up the main screen
+        setContentView(R.layout.activity_fullscreen);
+
+        // Normal click locks/unlocks the current band. Long click allows custom selection of band.
+        bandWidget = findViewById(R.id.band);
+        bandWidget.setOnCheckedChangeListener((view, checked) -> onBandModeToggle());
+        bandWidget.setOnLongClickListener(view -> onBandChooserRequest());
+
+        // Normal click locks/unlocks the current album. Long click allows custom selection of album.
+        albumWidget = findViewById(R.id.album);
+        albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
+        albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
+
+        // Keep the song widget selected so that marquee scrolling will work.
+        songWidget = findViewById(R.id.song);
+        songWidget.setSelected(true);
+
+        playPauseWidget = findViewById(R.id.playPause);
+        playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
+
+        nextSongWidget = findViewById(R.id.next);
+        nextSongWidget.setOnClickListener(view -> onNextSongRequest());
+
+        // Register to receive Bluetooth events
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         this.registerReceiver(new BluetoothReceiver(), filter);
 
-        setContentView(R.layout.activity_fullscreen);
-        screenLocker = new ScreenLocker(this);
-
-        bandWidget = findViewById(R.id.band);
-        albumWidget = findViewById(R.id.album);
-        songWidget = findViewById(R.id.song);
-        songWidget.setSelected(true);
-
-        // Normal click locks/unlocks the current band. Long click allows custom selection of band.
-        bandWidget.setOnCheckedChangeListener((view, checked) -> onBandModeToggle());
-        bandWidget.setOnLongClickListener(view -> onBandChooserRequest());
-
-        albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
-        albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
-
-        playPauseWidget = findViewById(R.id.playPause);
-        playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
-        nextSongWidget = findViewById(R.id.next);
-        nextSongWidget.setOnClickListener(view -> onNextSongRequest());
-
-        // Set up incoming messages.
-        handler = new Handler(Looper.getMainLooper(), this::handleMessage);
-        Updater updater = new Updater();
-
         // Initiate the other pieces of this app.
-        MusicController controller = new MusicController(updater, getApplicationContext());
+        screenLocker = new ScreenLocker(this);
+        MusicController controller = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
         musicRequester = controller.getRequester();
         musicThread = new LooperThread(controller::setupHandlers);
         musicThread.start();
     }
 
-    /*
-     * We want to use ToggleButtons to show whether or not we are "locked" on a band or an album. But, these buttons
-     * have interplay (selecting one means deselecting the other). We need to distinguish "the user pressed this button"
-     * from "we just programmatically changed the state of this button". This is a bit of a hack, but we use this
-     * boolean to control this. When set to true, we simply ignore button update messages.
-     */
-    private boolean toggleShortCircuit = false;
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Utils.hideSystemUI(this, R.id.mainTable);
+    }
+
 
     public void onBandModeToggle() {
-        if (toggleShortCircuit) {
-            return;
-        }
-        musicRequester.toggleBandMode();
+        // Use lock to make sure we only do work in response to user presses on the band button
+        callbackLock.run(musicRequester::toggleBandMode);
     }
 
     public void onAlbumModeToggle() {
-        if (toggleShortCircuit) {
-            return;
-        }
-        musicRequester.toggleAlbumMode();
+        // Use lock to make sure we only do work in response to user presses on the album button
+        callbackLock.run(musicRequester::toggleAlbumMode);
     }
 
     public void onPlayPauseToggle() {
