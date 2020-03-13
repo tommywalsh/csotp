@@ -188,9 +188,9 @@ public class MainActivity extends AppCompatActivity {
         // Initiate the other pieces of this app.
         screenLocker = new ScreenLocker(this);
         MusicController rawController = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
-        controller = rawController.getAPI();
         musicThread = new LooperThread(rawController::setupHandlers);
         musicThread.start();
+        controller = rawController.getAPI();
     }
 
     @Override
