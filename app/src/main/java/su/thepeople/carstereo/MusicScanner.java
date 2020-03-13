@@ -22,6 +22,8 @@ import java.util.Optional;
  */
 public class MusicScanner {
 
+    private static String LOG_TAG = "Music Scanner";
+
     private Database database;
     private Context context;
 
@@ -60,7 +62,6 @@ public class MusicScanner {
         return Optional.empty();
     }
 
-    private static String LOG_TAG = "Music Scanner";
     private void scanSdcard(File sdcardRoot) {
         Log.d(LOG_TAG, String.format("Scanning %s", sdcardRoot.getAbsolutePath()));
         Path mcotpRootPath = sdcardRoot.toPath().resolve("mcotp");

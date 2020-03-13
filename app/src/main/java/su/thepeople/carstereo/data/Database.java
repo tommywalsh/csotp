@@ -55,7 +55,6 @@ public abstract class Database extends RoomDatabase {
                         MusicScanner scanner = new MusicScanner(context, instance);
                         scanner.scan();
                     }
-                    // TODO: show error message if we could not find any bands
                 }
             }
         }

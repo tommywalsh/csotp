@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -52,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
     RecursionLock callbackLock = new RecursionLock();
 
+    private static final String LOG_ID = "Main Activity";
+
     /**
      * This helper class defines what happens when other parts of the app send us a message.
      */
@@ -60,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
             callbackLock.run(() -> {
+                Log.d(LOG_ID, String.format("Reacting to play mode change: band is%s locked, album is%s locked",
+                        isBandLocked ? "" : " not",
+                        isAlbumLocked ? "" : " not"));
                 bandWidget.setChecked(isBandLocked);
                 albumWidget.setChecked(isAlbumLocked);
             });
@@ -67,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPlayStateChange(boolean isPlaying) {
+            Log.d(LOG_ID, String.format("Reacting to play state change: we are now%s playing", isPlaying ? "" : " not"));
             if (isPlaying) {
                 playPauseWidget.setImageResource(R.drawable.ic_pause_button);
             } else {
@@ -76,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onCurrentSongChange(SongInfo currentSong) {
+            Log.d(LOG_ID, String.format("Reaching to song change: (%s)(%s)(%s)",
+                    currentSong.band.name,
+                    currentSong.album == null ? "<none>" : currentSong.album.name,
+                    currentSong.song.name));
             songWidget.setText(currentSong.song.name);
             bandWidget.setText(currentSong.band.name);
             bandWidget.setTextOn(currentSong.band.name);
@@ -92,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
             Bundle bundle = new Bundle();
             bundle.putSerializable("BANDS", bands);
             intent.putExtras(bundle);
+            Log.d(LOG_ID, "Starting band chooser");
             MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
         }
 
@@ -102,12 +114,14 @@ public class MainActivity extends AppCompatActivity {
             Bundle bundle = new Bundle();
             bundle.putSerializable("ALBUMS", albums);
             intent.putExtras(bundle);
+            Log.d(LOG_ID, "Starting album chooser");
             MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
         }
 
         @Override
         protected void onExceptionReport(Exception exception) {
             // Currently we only have one type of exception. This code will need improvement if/when that changes.
+            Log.e(LOG_ID, "Reporting error to user", exception);
             playPauseWidget.setEnabled(false);
             nextSongWidget.setEnabled(false);
             bandWidget.setEnabled(false);
@@ -127,9 +141,11 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 //Device is now connected. Keep the screen on
+                Log.d(LOG_ID, "Detected bluetooth connection made. Forcing screen on");
                 screenLocker.ensureScreenOn();
             } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                 //Device has disconnected. Pause (if running), and allow the screen to turn off
+                Log.d(LOG_ID, "Detected bluetooth connection lost. Pausing music and releasing screen lock");
                 musicRequester.forcePause();
                 screenLocker.allowScreenToShutOff();
             }
@@ -141,6 +157,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.d(LOG_ID, "Main Activity created");
 
         // Set up the main screen
         setContentView(R.layout.activity_fullscreen);
@@ -182,7 +200,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(LOG_ID, "Main Activity resumed");
         Utils.hideSystemUI(this, R.id.mainTable);
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(LOG_ID, "Main activity being destroyed");
+        musicThread.interrupt();
+        super.onDestroy();
     }
 
 
@@ -214,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
      *   6) We send a message to the music controller asking it to "lock" on the selected album.
      */
     private boolean onAlbumChooserRequest() {
+        Log.d(LOG_ID, "Requesting album list from controller");
         musicRequester.requestAlbumList();
         return true;
     }
@@ -222,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
      * This follows the same strategy as onAlbumChooserRequest()
      */
     private boolean onBandChooserRequest() {
+        Log.d(LOG_ID, "Requesting band list from controller");
         musicRequester.requestBandList();
         return true;
     }
@@ -240,11 +268,5 @@ public class MainActivity extends AppCompatActivity {
                 musicRequester.lockExplicitBand(itemId);
             }
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        musicThread.interrupt();
-        super.onDestroy();
     }
 }

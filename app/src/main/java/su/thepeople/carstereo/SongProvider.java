@@ -1,5 +1,7 @@
 package su.thepeople.carstereo;
 
+import android.util.Log;
+
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
@@ -13,6 +15,7 @@ import java.util.Optional;
 public abstract class SongProvider {
 
     private Database database;
+    protected static final String LOG_ID = "Song Provider";
 
     SongProvider(Database database) {
         this.database = database;
@@ -28,12 +31,15 @@ public abstract class SongProvider {
      * Specialization for "shuffle mode". Each song is randomly selected from the collection.
      */
     public static class ShuffleProvider extends SongProvider {
+        private static final int BATCH_SIZE = 10;
+
         ShuffleProvider(Database database) {
             super(database);
         }
 
         public List<Song> getNextBatch() {
-            return getDatabase().songDAO().getRandomBatch(10);
+            Log.d(LOG_ID, String.format("Getting next batch of %d random songs", BATCH_SIZE));
+            return getDatabase().songDAO().getRandomBatch(BATCH_SIZE);
         }
     }
 
@@ -49,6 +55,7 @@ public abstract class SongProvider {
         }
 
         public List<Song> getNextBatch() {
+            Log.d(LOG_ID, String.format("Getting all songs for band %d", bandId));
             return getDatabase().songDAO().getAllForBand(bandId);
         }
     }
@@ -87,6 +94,7 @@ public abstract class SongProvider {
         }
 
         public List<Song> getNextBatch() {
+            Log.d(LOG_ID, String.format("Getting all songs for band %d", albumId));
 
             // This list will contain the full album from start to finish.
             final List<Song> list = getDatabase().songDAO().getAllForAlbum(albumId);
@@ -97,11 +105,13 @@ public abstract class SongProvider {
              * matches. The remaining list will be the remainder of the album.
              */
             previousSongId.ifPresent(songId -> {
+                Log.v(LOG_ID, String.format("Skipping forward so we start after song %d", songId));
                 Optional<Song> song = popSong(list);
                 while (song.isPresent()) {
                     if (song.get().uid == songId) {
                         break;
                     }
+                    Log.v(LOG_ID, String.format("Skipping song %d", song.get().uid));
                     song = popSong(list);
                 }
             });
@@ -111,6 +121,7 @@ public abstract class SongProvider {
 
             // If the specified song was the last one on the album, then we threw away the whole list! Start fresh.
             if (list.isEmpty()) {
+                Log.v(LOG_ID, "We skipped the entire album! Start again");
                 return getDatabase().songDAO().getAllForAlbum(albumId);
             }
             return list;
