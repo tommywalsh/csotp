@@ -15,11 +15,6 @@ import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.ArrayList;
-
-import su.thepeople.carstereo.data.Album;
-import su.thepeople.carstereo.data.Band;
-
 /**
  * A full-screen activity that plays on-disk music files. This is intended to be used as a car stereo.
  *
@@ -42,7 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton nextSongWidget;
 
     // Other parts of the app that we need to communicate with.
-    private MusicController.Requester musicRequester;
+    private MusicControllerAPI controller;
+//    private MusicController.Requester musicRequester;
     private LooperThread musicThread;
     private ScreenLocker screenLocker;
 
@@ -61,13 +57,13 @@ public class MainActivity extends AppCompatActivity {
     private class MainActivityAPIImpl extends MainActivityAPI {
 
         @Override
-        protected void onPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
+        protected void onPlayModeChange(PlayMode mode) {
             callbackLock.run(() -> {
                 Log.d(LOG_ID, String.format("Reacting to play mode change: band is%s locked, album is%s locked",
-                        isBandLocked ? "" : " not",
-                        isAlbumLocked ? "" : " not"));
-                bandWidget.setChecked(isBandLocked);
-                albumWidget.setChecked(isAlbumLocked);
+                        mode.isBandLocked ? "" : " not",
+                        mode.isAlbumLocked ? "" : " not"));
+                bandWidget.setChecked(mode.isBandLocked);
+                albumWidget.setChecked(mode.isAlbumLocked);
             });
         }
 
@@ -97,22 +93,22 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onBandListResponse(ArrayList<Band> bands) {
+        protected void onBandListResponse(BandListWrapper wrapper) {
             // The only reason we would have asked for a band list is to open the band chooser.
             Intent intent = new Intent(MainActivity.this, ItemChooser.BandChooser.class);
             Bundle bundle = new Bundle();
-            bundle.putSerializable("BANDS", bands);
+            bundle.putSerializable("BANDS", wrapper.bands);
             intent.putExtras(bundle);
             Log.d(LOG_ID, "Starting band chooser");
             MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
         }
 
         @Override
-        protected void onAlbumListResponse(ArrayList<Album> albums) {
+        protected void onAlbumListResponse(AlbumListWrapper wrapper) {
             // The only reason we would have asked for an album list is to open the album chooser.
             Intent intent = new Intent(MainActivity.this, ItemChooser.AlbumChooser.class);
             Bundle bundle = new Bundle();
-            bundle.putSerializable("ALBUMS", albums);
+            bundle.putSerializable("ALBUMS", wrapper.albums);
             intent.putExtras(bundle);
             Log.d(LOG_ID, "Starting album chooser");
             MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
@@ -146,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                 //Device has disconnected. Pause (if running), and allow the screen to turn off
                 Log.d(LOG_ID, "Detected bluetooth connection lost. Pausing music and releasing screen lock");
-                musicRequester.forcePause();
+                controller.forcePause();
                 screenLocker.allowScreenToShutOff();
             }
         }
@@ -191,9 +187,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Initiate the other pieces of this app.
         screenLocker = new ScreenLocker(this);
-        MusicController controller = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
-        musicRequester = controller.getRequester();
-        musicThread = new LooperThread(controller::setupHandlers);
+        MusicController rawController = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
+        controller = rawController.getAPI();
+        musicThread = new LooperThread(rawController::setupHandlers);
         musicThread.start();
     }
 
@@ -214,20 +210,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void onBandModeToggle() {
         // Use lock to make sure we only do work in response to user presses on the band button
-        callbackLock.run(musicRequester::toggleBandMode);
+        callbackLock.run(controller::toggleBandMode);
     }
 
     public void onAlbumModeToggle() {
         // Use lock to make sure we only do work in response to user presses on the album button
-        callbackLock.run(musicRequester::toggleAlbumMode);
+        callbackLock.run(controller::toggleAlbumMode);
     }
 
     public void onPlayPauseToggle() {
-        musicRequester.togglePlayPause();
+        controller.togglePlayPause();
     }
 
     public void onNextSongRequest() {
-        musicRequester.skipAhead();
+        controller.skipAhead();
     }
 
     /**
@@ -241,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private boolean onAlbumChooserRequest() {
         Log.d(LOG_ID, "Requesting album list from controller");
-        musicRequester.requestAlbumList();
+        controller.requestAlbumList();
         return true;
     }
 
@@ -250,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private boolean onBandChooserRequest() {
         Log.d(LOG_ID, "Requesting band list from controller");
-        musicRequester.requestBandList();
+        controller.requestBandList();
         return true;
     }
 
@@ -263,9 +259,9 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK) {
             int itemId = result.getIntExtra("ITEM_ID", -1);
             if (requestCode == ALBUM_CHOOSER) {
-                musicRequester.lockExplicitAlbum(itemId);
+                controller.lockSpecificAlbum(itemId);
             } else if (requestCode == BAND_CHOOSER) {
-                musicRequester.lockExplicitBand(itemId);
+                controller.lockSpecificBand(itemId);
             }
         }
     }

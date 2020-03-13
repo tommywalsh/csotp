@@ -1,8 +1,6 @@
 package su.thepeople.carstereo;
 
-import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -12,59 +10,66 @@ import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 
 /**
- * This class handles cross-thread communications to the MainActivity.
+ * This class defines the MainActivity functionality that is available from outside the UI thread.
  *
- * The various non-private/protected methods and datatypes are meant to be used by other components of the system that are not
- * running on the same thread as the MainActivity. This class will handle sending a message to the MainActivity on its
- * own thread.
+ * Any public method may be called on any thread. This will automatically route the request to the UI thread for
+ * processing.
  *
  * The abstract methods are implemented by the MainActivity itself, and will be run on the MainActivity thread.
- *
- * Internally, the class uses a simple strategy: we have a small collection of simple datatypes that are packed into
- * an Android Handler message. We keep a 1:1 correspondence between datatype and message so that we just need to look
- * at the object type to know which message is being sent.
  */
-public abstract class MainActivityAPI {
+public abstract class MainActivityAPI extends InterThreadAPI {
 
-    void notifyPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
+    public void notifyPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
         PlayMode mode = new PlayMode();
         mode.isBandLocked = isBandLocked;
         mode.isAlbumLocked = isAlbumLocked;
-        sendMessage(mode);
+        callInterThread(cb_playMode, mode);
     }
 
-    void notifyPlayStateChange(boolean isPlaying) {
-        sendMessage(isPlaying);
+    public void notifyPlayStateChange(boolean isPlaying) { callInterThread(cb_playState, isPlaying); }
+
+    public void notifyCurrentSongChange(SongInfo currentSong) {
+        callInterThread(cb_currentSong, currentSong);
     }
 
-    void notifyCurrentSongChange(SongInfo currentSong) {
-        sendMessage(currentSong);
+    public void fulfillBandListRequest(List<Band> bands) {
+        callInterThread(cb_bandList, new BandListWrapper(bands));
     }
 
-    void fulfillBandListRequest(List<Band> bands) {
-        sendMessage(new BandListWrapper(bands));
+    public void fulfillAlbumListRequest(List<Album> albums) {
+        callInterThread(cb_albumList, new AlbumListWrapper(albums));
     }
 
-    void fulfillAlbumListRequest(List<Album> albums) {
-        sendMessage(new AlbumListWrapper(albums));
+    public void reportException(Exception e) {
+        callInterThread(cb_exception, e);
     }
 
-    void reportException(Exception e) {
-        sendMessage(e);
+    private int cb_playMode;
+    private int cb_playState;
+    private int cb_currentSong;
+    private int cb_bandList;
+    private int cb_albumList;
+    private int cb_exception;
+
+    public MainActivityAPI() {
+        cb_playMode = registerCallback(this::onPlayModeChange, PlayMode.class);
+        cb_playState = registerCallback(this::onPlayStateChange, Boolean.class);
+        cb_currentSong = registerCallback(this::onCurrentSongChange, SongInfo.class);
+        cb_bandList = registerCallback(this::onBandListResponse, BandListWrapper.class);
+        cb_albumList = registerCallback(this::onAlbumListResponse, AlbumListWrapper.class);
+        cb_exception = registerCallback(this::onExceptionReport, Exception.class);
     }
 
-    private Handler handler;
-
-    MainActivityAPI() {
-        this.handler = new Handler(Looper.getMainLooper(), this::handleMessage);
+    protected Looper getLooper() {
+        return Looper.getMainLooper();
     }
 
-    private static class PlayMode {
+    protected static class PlayMode {
         boolean isBandLocked;
         boolean isAlbumLocked;
     }
 
-    private static class BandListWrapper implements Serializable {
+    protected static class BandListWrapper implements Serializable {
         ArrayList<Band> bands;
 
         BandListWrapper(List<Band> list) {
@@ -72,7 +77,7 @@ public abstract class MainActivityAPI {
         }
     }
 
-    private static class AlbumListWrapper implements Serializable {
+    protected static class AlbumListWrapper implements Serializable {
         ArrayList<Album> albums;
 
         AlbumListWrapper(List<Album> list) {
@@ -80,49 +85,15 @@ public abstract class MainActivityAPI {
         }
     }
 
-    // Helper method that sends an object of any type over to the MainActivity thread.
-    private void sendMessage(Object object) {
-        Message msg = Message.obtain();
-        msg.obj = object;
-        handler.sendMessage(msg);
-    }
-
-    protected abstract void onPlayModeChange(boolean isBandLocked, boolean isAlbumLocked);
+    protected abstract void onPlayModeChange(PlayMode newPlayMode);
 
     protected abstract void onPlayStateChange(boolean isPlaying);
 
     protected abstract void onCurrentSongChange(SongInfo currentSong);
 
-    protected abstract void onBandListResponse(ArrayList<Band> bands);
+    protected abstract void onBandListResponse(BandListWrapper bands);
 
-    protected abstract void onAlbumListResponse(ArrayList<Album> albums);
+    protected abstract void onAlbumListResponse(AlbumListWrapper albums);
 
     protected abstract void onExceptionReport(Exception exception);
-
-    private boolean handleMessage(Message message) {
-        Object obj = message.obj;
-
-        if (obj instanceof PlayMode) {
-            // The play mode has changed. Update the on-screen toggle buttons to reflect the new mode.
-            PlayMode mode = (PlayMode) obj;
-            onPlayModeChange(mode.isBandLocked, mode.isAlbumLocked);
-        } else if (obj instanceof Boolean) {
-            // Music has started or stopped playing. Update the on-screen play/pause button to match.
-            onPlayStateChange((Boolean) obj);
-        } else if (obj instanceof SongInfo) {
-            // A new song is being played. Update the text on the screen to match.
-            SongInfo info = (SongInfo) obj;
-            onCurrentSongChange(info);
-        } else if (obj instanceof AlbumListWrapper) {
-            AlbumListWrapper wrapper = (AlbumListWrapper) obj;
-            onAlbumListResponse(wrapper.albums);
-        } else if (obj instanceof BandListWrapper) {
-            BandListWrapper wrapper = (BandListWrapper) obj;
-            onBandListResponse(wrapper.bands);
-        } else if (obj instanceof Exception) {
-            onExceptionReport((Exception) obj);
-        }
-        // True here means that we have completed all required processing of the message.
-        return true;
-    }
 }

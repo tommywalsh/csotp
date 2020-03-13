@@ -28,7 +28,7 @@ class MusicPlayer {
     private MainActivityAPI mainActivity;
 
     // Object that will send requests to the controller.
-    private MusicController.Requester controlRequest;
+    private MusicControllerAPI controller;
 
     // Which song is currently playing (or if we're paused, which song will play when we unpause)?
     private SongInfo currentSong = null;
@@ -43,16 +43,16 @@ class MusicPlayer {
      */
     private List<SongInfo> playlist;
 
-    MusicPlayer(MainActivityAPI mainActivity, MusicController.Requester controlRequest) {
+    public MusicPlayer(MainActivityAPI mainActivity, MusicControllerAPI controller) {
         this.mainActivity = mainActivity;
-        this.controlRequest = controlRequest;
+        this.controller = controller;
         androidPlayer = new MediaPlayer();
         androidPlayer.setLooping(false);
         androidPlayer.setOnPreparedListener(mp -> onPrepared());
         androidPlayer.setOnCompletionListener(mp -> onSongCompleted());
     }
 
-    SongInfo getCurrentSong() {
+    public SongInfo getCurrentSong() {
         return currentSong;
     }
 
@@ -83,7 +83,7 @@ class MusicPlayer {
      * @param replaceCurrent - If true, we will immediately play the first passed-in song. If false, we'll let any
      *                       currently-playing song finish first.
      */
-    void setPlaylist(List<SongInfo> playlist, boolean replaceCurrent) {
+    public void setPlaylist(List<SongInfo> playlist, boolean replaceCurrent) {
         this.playlist = playlist;
         Log.d(LOG_ID, "Replacing contents of playlist");
         if (replaceCurrent) {
@@ -91,7 +91,7 @@ class MusicPlayer {
         }
     }
 
-    void prepareNextSong() {
+    public void prepareNextSong() {
         if (!playlist.isEmpty()) {
 
             // Pop off the first item in the to-play queue and play it.
@@ -112,21 +112,21 @@ class MusicPlayer {
             // Ask for more songs, if necessary.
             if (playlist.isEmpty()) {
                 Log.v(LOG_ID, "Playlist has been depleted. Now replenishing");
-                controlRequest.replenishPlaylist();
+                controller.replenishPlaylist();
             }
         } else {
             Log.w(LOG_ID, "Playlist is empty. No song to load into system player.");
         }
     }
 
-    void play() {
+    public void play() {
         if (!androidPlayer.isPlaying()) {
             androidPlayer.start();
         }
         shouldBePlaying = true;
     }
 
-    void pause() {
+    public void pause() {
         if (androidPlayer.isPlaying()) {
             androidPlayer.pause();
         }

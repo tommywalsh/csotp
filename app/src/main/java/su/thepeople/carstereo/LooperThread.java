@@ -24,6 +24,12 @@ public class LooperThread extends Thread {
         // Before the event loop actually starts, allow the task to set up whatever message handlers it needs.
         handlerCreation.accept(Looper.myLooper());
 
+        /*
+         * TODO: I think there is a race condition here. If this thread is slow to start, then this thread's handlers
+         * might possibly be accessed before we get here. But, this is the first place where it is safe to use them.
+         * It might make sense to put a "ready" announcement here.
+         */
+
         // Turn over control to the event loop.
         Looper.loop();
     }

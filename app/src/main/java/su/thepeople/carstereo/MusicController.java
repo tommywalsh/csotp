@@ -1,9 +1,7 @@
 package su.thepeople.carstereo;
 
 import android.content.Context;
-import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
@@ -15,21 +13,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * This class controls what songs are (or aren't playing). It mainly translates simplified messages from the UI and
+ * This class controls what songs are (or aren't) playing. It mainly translates simplified messages from the UI and
  * passes on more detailed instructions to the music player.
  */
 class MusicController {
-    // Commands that are supported by this controller.
-    private static final int TOGGLE_PLAY_PAUSE = 1;
-    private static final int SKIP_AHEAD = 2;
-    private static final int TOGGLE_BAND_MODE = 3;
-    private static final int TOGGLE_ALBUM_MODE = 4;
-    private static final int REPLENISH_PLAYLIST = 5;
-    private static final int REQUEST_ALBUM_LIST = 6;
-    private static final int LOCK_EXPLICIT_ALBUM = 7;
-    private static final int REQUEST_BAND_LIST = 8;
-    private static final int LOCK_EXPLICIT_BAND = 9;
-    private static final int FORCE_PAUSE = 10;
+
+    // This object handles communications from other object in the system (including ones on other threads)
+    private MusicControllerAPI api = new MusicControllerAPIImpl();
 
     // An object that can send messages to the UI.
     private MainActivityAPI mainActivity;
@@ -42,10 +32,15 @@ class MusicController {
 
     private Context context;
     private Database database;
+    private Looper looper;
 
-    MusicController(MainActivityAPI mainActivity, Context context) {
+    public MusicController(MainActivityAPI mainActivity, Context context) {
         this.mainActivity = mainActivity;
         this.context = context;
+    }
+
+    public MusicControllerAPI getAPI() {
+        return api;
     }
 
     // These are the three "modes" that control which songs get played in which order.
@@ -56,53 +51,6 @@ class MusicController {
     }
     private PlayMode mode = PlayMode.SHUFFLE;
 
-    private void toggleBandMode() {
-        if (mode == PlayMode.BAND) {
-            mode = PlayMode.SHUFFLE;
-            songProvider = new SongProvider.ShuffleProvider(database);
-            replenishPlaylist(true);
-        } else {
-            SongInfo song = musicPlayer.getCurrentSong();
-            if (song != null) {
-                long bandId = song.band.uid;
-                songProvider = new SongProvider.BandProvider(database, bandId);
-                mode = PlayMode.BAND;
-                replenishPlaylist(false);
-            }
-        }
-        mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
-    }
-
-    private void toggleAlbumMode() {
-        if (mode == PlayMode.ALBUM) {
-            mode = PlayMode.SHUFFLE;
-            songProvider = new SongProvider.ShuffleProvider(database);
-            replenishPlaylist(true);
-        } else {
-            SongInfo song = musicPlayer.getCurrentSong();
-            if (song != null && song.album != null) {
-                long albumId = song.album.uid;
-                songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
-                mode = PlayMode.ALBUM;
-                replenishPlaylist(false);
-            }
-        }
-        mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
-    }
-
-    private void lockExplicitAlbum(int albumId) {
-        songProvider = new SongProvider.AlbumProvider(database, albumId);
-        mode = PlayMode.ALBUM;
-        replenishPlaylist(true);
-        mainActivity.notifyPlayModeChange(false, true);
-    }
-
-    private void lockExplicitBand(int bandId) {
-        songProvider = new SongProvider.BandProvider(database, bandId);
-        mode = PlayMode.BAND;
-        replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
-        mainActivity.notifyPlayModeChange(true, false);
-    }
 
     // Should the system be playing music right now, or not?
     private enum PlayState {
@@ -110,27 +58,6 @@ class MusicController {
         PAUSED
     }
     private PlayState playState = PlayState.PAUSED;
-
-    private void togglePlayPause() {
-        if (playState == PlayState.PAUSED) {
-            musicPlayer.play();
-            playState = PlayState.PLAYING;
-        } else {
-            musicPlayer.pause();
-            playState = PlayState.PAUSED;
-        }
-        mainActivity.notifyPlayStateChange(playState == PlayState.PLAYING);
-    }
-
-    private void forcePause() {
-        musicPlayer.pause();
-        playState = PlayState.PAUSED;
-        mainActivity.notifyPlayStateChange(false);
-    }
-
-    private void skipAhead() {
-        musicPlayer.prepareNextSong();
-    }
 
 
     /**
@@ -145,115 +72,109 @@ class MusicController {
     }
 
     /**
-     * Helper class, used by other parts of the system to send requests to this class. These requests will often be
-     * made from another thread.
+     * This helper class implements the "public API". All of its methods will be called on the controller's thread,
+     * even if the original request came from a different thread. Therefore, it is safe to do things like make expensive
+     * calls to the Database, since there is no chance of holding up another thread while we are doing so.
      */
-    static class Requester {
-        private volatile Handler handler;
+    private class MusicControllerAPIImpl extends MusicControllerAPI {
 
-        private void sendMessage(int signal) {
-            sendMessage(signal, 0);
-        }
-
-        private void sendMessage(int signal, int extra) {
-            if (handler != null) {
-                Message msg = Message.obtain();
-                msg.arg1 = signal;
-                msg.arg2 = extra;
-                handler.sendMessage(msg);
+        @Override
+        protected void onTogglePlayPause() {
+            if (playState == PlayState.PAUSED) {
+                musicPlayer.play();
+                playState = PlayState.PLAYING;
+            } else {
+                musicPlayer.pause();
+                playState = PlayState.PAUSED;
             }
+            mainActivity.notifyPlayStateChange(playState == PlayState.PLAYING);
         }
 
-        void togglePlayPause() {
-            sendMessage(TOGGLE_PLAY_PAUSE);
+        @Override
+        protected void onSkipAhead() {
+            musicPlayer.prepareNextSong();
         }
 
-        void skipAhead() {
-            sendMessage(SKIP_AHEAD);
+        @Override
+        protected void onForcePause() {
+            musicPlayer.pause();
+            playState = PlayState.PAUSED;
+            mainActivity.notifyPlayStateChange(false);
         }
 
-        void toggleBandMode() {
-            sendMessage(TOGGLE_BAND_MODE);
+        @Override
+        protected void onToggleBandMode() {
+            if (mode == PlayMode.BAND) {
+                mode = PlayMode.SHUFFLE;
+                songProvider = new SongProvider.ShuffleProvider(database);
+                MusicController.this.replenishPlaylist(true);
+            } else {
+                SongInfo song = musicPlayer.getCurrentSong();
+                if (song != null) {
+                    long bandId = song.band.uid;
+                    songProvider = new SongProvider.BandProvider(database, bandId);
+                    mode = PlayMode.BAND;
+                    MusicController.this.replenishPlaylist(false);
+                }
+            }
+            mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
         }
 
-        void toggleAlbumMode() {
-            sendMessage(TOGGLE_ALBUM_MODE);
+        @Override
+        protected void onToggleAlbumMode() {
+            if (mode == PlayMode.ALBUM) {
+                mode = PlayMode.SHUFFLE;
+                songProvider = new SongProvider.ShuffleProvider(database);
+                MusicController.this.replenishPlaylist(true);
+            } else {
+                SongInfo song = musicPlayer.getCurrentSong();
+                if (song != null && song.album != null) {
+                    long albumId = song.album.uid;
+                    songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
+                    mode = PlayMode.ALBUM;
+                    MusicController.this.replenishPlaylist(false);
+                }
+            }
+            mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
         }
 
-        void replenishPlaylist() {
-            sendMessage(REPLENISH_PLAYLIST);
+        @Override
+        protected void onReplenishPlaylist() {
+            MusicController.this.replenishPlaylist(false);
         }
 
-        void requestAlbumList() { sendMessage(REQUEST_ALBUM_LIST); }
-
-        void lockExplicitAlbum(int albumId) { sendMessage(LOCK_EXPLICIT_ALBUM, albumId); }
-
-        void requestBandList() { sendMessage(REQUEST_BAND_LIST); }
-
-        void lockExplicitBand(int bandId) { sendMessage(LOCK_EXPLICIT_BAND, bandId); }
-
-        void forcePause() { sendMessage(FORCE_PAUSE); }
-    }
-
-    private Requester requester = new Requester();
-
-    Requester getRequester() {
-        return requester;
-    }
-
-    /**
-     * Bottleneck method where we respond to messages sent from other parts of the app (often from a different thread)
-     */
-    private boolean handleMessage(Message message) {
-        switch (message.arg1) {
-            case TOGGLE_BAND_MODE:
-                toggleBandMode();
-                break;
-            case TOGGLE_ALBUM_MODE:
-                toggleAlbumMode();
-                break;
-            case TOGGLE_PLAY_PAUSE:
-                togglePlayPause();
-                break;
-            case SKIP_AHEAD:
-                skipAhead();
-                break;
-            case REPLENISH_PLAYLIST:
-                replenishPlaylist(false);
-                break;
-            case REQUEST_ALBUM_LIST:
-                sendAlbumList();
-                break;
-            case LOCK_EXPLICIT_ALBUM:
-                int albumId = message.arg2;
-                lockExplicitAlbum(albumId);
-                break;
-            case REQUEST_BAND_LIST:
-                sendBandList();
-                break;
-            case LOCK_EXPLICIT_BAND:
-                int bandId = message.arg2;
-                lockExplicitBand(bandId);
-                break;
-            case FORCE_PAUSE:
-                forcePause();
-            default:
-                // We should never get here, so we should assert, but asserts are apparently unreliable, so do nothing.
-                break;
+        @Override
+        protected void onLockSpecificBand(int bandId) {
+            songProvider = new SongProvider.BandProvider(database, bandId);
+            mode = PlayMode.BAND;
+            MusicController.this.replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
+            mainActivity.notifyPlayModeChange(true, false);
         }
 
-        // "true" means "We've done all required processing of this messages"
-        return true;
-    }
+        @Override
+        protected void onLockSpecificAlbum(int albumId) {
+            songProvider = new SongProvider.AlbumProvider(database, albumId);
+            mode = PlayMode.ALBUM;
+            MusicController.this.replenishPlaylist(true);
+            mainActivity.notifyPlayModeChange(false, true);
+        }
 
-    private void sendAlbumList() {
-        int bandId = musicPlayer.getCurrentSong().band.uid;
-        List<Album> albums = database.albumDAO().getAllForBand(bandId);
-        mainActivity.fulfillAlbumListRequest(albums);
-    }
+        @Override
+        protected void onRequestBandList() {
+            mainActivity.fulfillBandListRequest(database.bandDAO().getAll());
+        }
 
-    private void sendBandList() {
-        mainActivity.fulfillBandListRequest(database.bandDAO().getAll());
+        @Override
+        protected void onRequestAlbumList() {
+            int bandId = musicPlayer.getCurrentSong().band.uid;
+            List<Album> albums = database.albumDAO().getAllForBand(bandId);
+            mainActivity.fulfillAlbumListRequest(albums);
+        }
+
+        @Override
+        protected Looper getLooper() {
+            return looper;
+        }
     }
 
     private List<SongInfo> getInfoForSongs(List<Song> songs) {
@@ -272,9 +193,9 @@ class MusicController {
      * we'll be interacting with on this thread, and set up messaging to/from all objects (whether on this thread or
      * not).
      */
-    void setupHandlers(Looper looper) {
-        requester.handler = new Handler(looper, this::handleMessage);
-        musicPlayer = new MusicPlayer(mainActivity, requester);
+    public void setupHandlers(Looper looper) {
+        this.looper = looper;
+        musicPlayer = new MusicPlayer(mainActivity, api);
         try {
             database = Database.getDatabase(context);
             songProvider = new SongProvider.ShuffleProvider(database);
