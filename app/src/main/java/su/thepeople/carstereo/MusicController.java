@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
  * This class controls what songs are (or aren't) playing. It mainly translates simplified messages from the UI and
  * passes on more detailed instructions to the music player.
  */
-class MusicController {
+public class MusicController extends LooperThread<MusicControllerAPI> {
 
     // This object handles communications from other object in the system (including ones on other threads)
-    private MusicControllerAPI api = new MusicControllerAPIImpl();
+    private MusicControllerAPI api;
 
     // An object that can send messages to the UI.
     private MainActivityAPI mainActivity;
@@ -32,16 +32,30 @@ class MusicController {
 
     private Context context;
     private Database database;
-    private Looper looper;
 
     public MusicController(MainActivityAPI mainActivity, Context context) {
         this.mainActivity = mainActivity;
         this.context = context;
     }
 
-    public MusicControllerAPI getAPI() {
+    @Override
+    protected MusicControllerAPI setupCommunications() {
+        api = new MusicControllerAPIImpl(Looper.myLooper());
         return api;
     }
+
+    @Override
+    protected void beforeMainLoop() {
+        musicPlayer = new MusicPlayer(mainActivity, api);
+        try {
+            database = Database.getDatabase(context);
+            songProvider = new SongProvider.ShuffleProvider(database);
+            replenishPlaylist(true);
+        } catch (NoLibraryException e) {
+            mainActivity.reportException(e);
+        }
+    }
+
 
     // These are the three "modes" that control which songs get played in which order.
     private enum PlayMode {
@@ -77,6 +91,12 @@ class MusicController {
      * calls to the Database, since there is no chance of holding up another thread while we are doing so.
      */
     private class MusicControllerAPIImpl extends MusicControllerAPI {
+
+        private Looper looper;
+
+        public MusicControllerAPIImpl(Looper looper) {
+            this.looper = looper;
+        }
 
         @Override
         protected void onTogglePlayPause() {
@@ -186,22 +206,5 @@ class MusicController {
                 return new SongInfo(band, song);
             }
         }).collect(Collectors.toList());
-    }
-
-    /**
-     * This method will be called just before this object's event loop starts. Here we can set up all of the objects
-     * we'll be interacting with on this thread, and set up messaging to/from all objects (whether on this thread or
-     * not).
-     */
-    public void setupHandlers(Looper looper) {
-        this.looper = looper;
-        musicPlayer = new MusicPlayer(mainActivity, api);
-        try {
-            database = Database.getDatabase(context);
-            songProvider = new SongProvider.ShuffleProvider(database);
-            replenishPlaylist(true);
-        } catch (NoLibraryException e) {
-            mainActivity.reportException(e);
-        }
     }
 }

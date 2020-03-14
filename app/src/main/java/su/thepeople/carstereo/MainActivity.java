@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Other parts of the app that we need to communicate with.
     private MusicControllerAPI controller;
-    private LooperThread musicThread;
+    private LooperThread<MusicControllerAPI> musicThread;
     private ScreenLocker screenLocker;
 
     // Activity IDs for the sub-activities that we expect to supply us with a result.
@@ -186,10 +186,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Initiate the other pieces of this app.
         screenLocker = new ScreenLocker(this);
-        MusicController rawController = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
-        musicThread = new LooperThread(rawController::setupHandlers);
-        musicThread.start();
-        controller = rawController.getAPI();
+        musicThread = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
+        controller = musicThread.startThread();
     }
 
     @Override
@@ -202,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         Log.d(LOG_ID, "Main activity being destroyed");
-        musicThread.interrupt();
+        musicThread.abandon();
         super.onDestroy();
     }
 
