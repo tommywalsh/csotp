@@ -16,6 +16,8 @@ import android.widget.Button;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
@@ -32,6 +34,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     protected abstract String getName(T obj);
     protected abstract int getId(T obj);
     protected abstract ArrayList<T> unbundle(Bundle bundle);
+    protected abstract boolean shouldShowScrollers();
 
     /**
      * A scrollable album picker
@@ -46,6 +49,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected ArrayList<Album> unbundle(Bundle bundle) {
             return (ArrayList<Album>) bundle.getSerializable("ALBUMS");
         }
+        @Override protected boolean shouldShowScrollers() { return false; }
     }
 
     /**
@@ -61,6 +65,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected ArrayList<Band> unbundle(Bundle bundle) {
             return (ArrayList<Band>) bundle.getSerializable("BANDS");
         }
+        @Override protected boolean shouldShowScrollers() { return true; }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
@@ -113,6 +118,67 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         Utils.hideSystemUI(this, R.id.itemPickerLayout);
     }
 
+    private RecyclerView listView;
+    private List<Button> courseButtons;
+    private List<Button> fineButtons;
+    private int listLength;
+
+    /*
+     * We divide the scroll region into 25 roughly-equal parts.
+     *
+     * The course position will tell which fifth of the entire region we are in. Values are 0.0, 0.2, 0.4, 0.6 and 0.8.
+     * The fine position will give the position within that fifth. Again values are 0.0, 0.2, 0.4, 0.6, and 0.8.
+     *
+     * For example, if we are two-thirds through the entire list (67%), the course position would be 0.6 (because we are
+     * between 60% and 80%), and the fine position would be 0.2 (because we are more than 20%, but less than 40%,
+     * through the course interval.
+     *
+     * In other words, in the above example, we are somewhere between 64% and 68% of the entire list.
+     */
+    private static class ScrollPosition {
+        double course;
+        double fine;
+    }
+
+    private void courseScroll(double pct) {
+        int itemIndex = (int) (pct * listLength);
+        listView.scrollToPosition(itemIndex);
+    }
+
+    private ScrollPosition getScrollPosition() {
+        int offset = listView.computeVerticalScrollOffset();
+        int range = listView.computeVerticalScrollRange();
+        double pct = range == 0 ? 0.0 : offset / (double) range;
+
+        double coursePosition = Math.floor(pct * 5.0) / 5.0;
+        double remainder = pct - coursePosition;
+        double finePosition = Math.floor(remainder * 25.0) / 5.0;
+
+        ScrollPosition position = new ScrollPosition();
+        position.course = coursePosition;
+        position.fine = finePosition;
+        return position;
+    }
+
+    private void fineScroll(double pct) {
+        ScrollPosition currentPosition = getScrollPosition();
+        double desiredPosition = currentPosition.course + (pct / 5.0);
+        int itemIndex = (int) (desiredPosition * listLength);
+        listView.scrollToPosition(itemIndex);
+    }
+
+    private void updateScrollers() {
+        ScrollPosition currentPosition = getScrollPosition();
+        courseButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
+        fineButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
+
+        int courseIndex = (int) (currentPosition.course * 5.0);
+        int fineIndex = (int) (currentPosition.fine * 5.0);
+
+        courseButtons.get(courseIndex).setBackgroundResource(R.color.colorAccent);
+        fineButtons.get(fineIndex).setBackgroundResource(R.color.colorAccent);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -122,10 +188,37 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         Bundle bundle = intent.getExtras();
         ArrayList<T> items = unbundle(bundle);
 
-        RecyclerView view = findViewById(R.id.itemRecycler);
-        view.setHasFixedSize(true);
+        listView = findViewById(R.id.itemRecycler);
+        listView.setHasFixedSize(true);
 
-        view.setLayoutManager(new LinearLayoutManager(this));
-        view.setAdapter(new Adapter(items));
+        listView.setLayoutManager(new LinearLayoutManager(this));
+        listView.setAdapter(new Adapter(items));
+
+        findViewById(R.id.courseScroller).setVisibility(shouldShowScrollers() ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.fineScroller).setVisibility(shouldShowScrollers() ? View.VISIBLE : View.INVISIBLE);
+
+        if (shouldShowScrollers()) {
+            listLength = items.size();
+
+            listView.setOnScrollChangeListener((v, x, y, x1, y1) -> updateScrollers());
+
+            courseButtons =
+                    Stream.of(R.id.course10, R.id.course30, R.id.course50, R.id.course70, R.id.course90)
+                            .map(id -> (Button) findViewById(id))
+                            .collect(Collectors.toList());
+
+            fineButtons =
+                    Stream.of(R.id.fine10, R.id.fine30, R.id.fine50, R.id.fine70, R.id.fine90)
+                            .map(id -> (Button) findViewById(id))
+                            .collect(Collectors.toList());
+
+            for (int i = 0; i < 5; i++) {
+                final int count = i;
+                courseButtons.get(i).setOnClickListener(view -> courseScroll(0.1 + 0.2 * count));
+                fineButtons.get(i).setOnClickListener(view -> fineScroll(0.1 + 0.2 * count));
+            }
+
+            updateScrollers();
+        }
     }
 }

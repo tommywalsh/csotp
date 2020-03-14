@@ -38,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Other parts of the app that we need to communicate with.
     private MusicControllerAPI controller;
-//    private MusicController.Requester musicRequester;
     private LooperThread musicThread;
     private ScreenLocker screenLocker;
 
