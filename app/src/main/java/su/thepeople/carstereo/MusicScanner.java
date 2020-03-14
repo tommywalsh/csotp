@@ -9,8 +9,8 @@ import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Class to scan for on-disk music.
@@ -32,80 +32,68 @@ public class MusicScanner {
         this.context = context;
     }
 
-
-    private boolean containsMcotpDir(File maybeDir) {
-        Log.d(LOG_TAG, String.format("Considering %s", maybeDir.toString()));
-        if (maybeDir.isDirectory()) {
-            File[] dirContents = maybeDir.listFiles();
-            if (dirContents != null) {
-                for (File item : maybeDir.listFiles()) {
-                    if (item.isDirectory() && item.getName().equals("mcotp")) {
-                        Log.d(LOG_TAG, "FOUND MCOTP!");
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+   private Optional<File> getMcotpSubdir(File maybeDir) {
+        Log.d(LOG_TAG, String.format("Looking for collection in %s", maybeDir.toString()));
+        Optional<File> maybeMcotp = Utils.dirContentsStream(maybeDir)
+                .filter(f -> f.isDirectory() && f.getName().equals("mcotp")).findFirst();
+        maybeMcotp.ifPresent(mcotp ->
+                Log.d(LOG_TAG, String.format("Found music collection at %s", mcotp.getAbsolutePath())));
+        return maybeMcotp;
     }
 
-    public Optional<File> findMcotpRoot() {
-        for (File mediaDir : context.getExternalMediaDirs()) {
-            File candidateDir = mediaDir;
-            while (candidateDir != null) {
-                if (containsMcotpDir(candidateDir)) {
-                    return Optional.of(candidateDir);
-                }
-                candidateDir = candidateDir.getParentFile();
-            }
-        }
-        return Optional.empty();
+    private Optional<File> findMcotpRoot() {
+        return Stream.of(context.getExternalMediaDirs())
+                .flatMap(Utils::dirParentStream)
+                .map(this::getMcotpSubdir)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
     }
 
-    private void scanSdcard(File sdcardRoot) {
-        Log.d(LOG_TAG, String.format("Scanning %s", sdcardRoot.getAbsolutePath()));
-        Path mcotpRootPath = sdcardRoot.toPath().resolve("mcotp");
-        File mcotpRoot = mcotpRootPath.toFile();
-        if (mcotpRoot.isDirectory()) {
-            for (File item : mcotpRoot.listFiles()) {
-                if (item.isDirectory() && !item.getName().startsWith("[")) {
-                    Log.d(LOG_TAG, String.format("Found band %s", item.getName()));
-                    Band newBand = new Band(item.getName());
+    private void scanCollection(File mcotpRoot) {
+        Log.d(LOG_TAG, String.format("Scanning collection at %s", mcotpRoot.getAbsolutePath()));
+        Utils.dirContentsStream(mcotpRoot)
+                .filter(File::isDirectory)
+                .filter(d -> !d.getName().startsWith("["))
+                .forEach(bandDir -> {
+                    Log.d(LOG_TAG, String.format("Found band directory %s", bandDir.getName()));
+                    Band newBand = new Band(bandDir.getName());
                     long bandID = database.bandDAO().insert(newBand);
-                    scanBandDir(bandID, item);
-                }
-            }
-        }
+                    scanBandDir(bandID, bandDir);
+                });
     }
+
     private void scanBandDir(long bandID, File bandDir) {
-        for (File item: bandDir.listFiles()) {
-            if (!item.getName().startsWith("[")) {
-                if (item.isDirectory()) {
-                    Log.d(LOG_TAG, String.format("Found album %s", item.getName()));
-                    Album newAlbum = new Album(item.getName(), bandID);
-                    long albumID = database.albumDAO().insert(newAlbum);
-                    scanAlbumDir(bandID, albumID, item);
-                } else if (item.isFile()) {
-                    Log.d(LOG_TAG, String.format("Found loose song %s", item.getName()));
-                    Song newSong = new Song(item.getName(), item.getAbsolutePath(), bandID, null);
-                    database.songDAO().insert(newSong);
-                }
-            }
-        }
+        Log.d(LOG_TAG, String.format("Scanning band directory %s", bandDir.getName()));
+        Utils.dirContentsStream(bandDir)
+                .filter(f -> !f.getName().startsWith("["))
+                .forEach(f -> {
+                    if (f.isDirectory()) {
+                        Log.d(LOG_TAG, String.format("Found album %s", f.getName()));
+                        Album newAlbum = new Album(f.getName(), bandID);
+                        long albumID = database.albumDAO().insert(newAlbum);
+                        scanAlbumDir(bandID, albumID, f);
+                    } else if (f.isFile()) {
+                        Log.d(LOG_TAG, String.format("Found loose song %s", f.getName()));
+                        Song newSong = new Song(f.getName(), f.getAbsolutePath(), bandID, null);
+                        database.songDAO().insert(newSong);
+                    }
+                });
     }
 
     private void scanAlbumDir(long bandID, long albumID, File albumDir) {
-        for (File item: albumDir.listFiles()) {
-            if (item.isFile() && !item.getName().startsWith("[")) {
-                Log.d(LOG_TAG, String.format("Found album song %s", item.getName()));
-                Song newSong = new Song(item.getName(), item.getAbsolutePath(), bandID, albumID);
-                database.songDAO().insert(newSong);
-            }
-        }
+        Utils.dirContentsStream(albumDir)
+                .filter(File::isFile)
+                .filter(f -> !f.getName().startsWith("["))
+                .forEach(songFile -> {
+                    Log.d(LOG_TAG, String.format("Found album song %s", songFile.getName()));
+                    Song newSong = new Song(songFile.getName(), songFile.getAbsolutePath(), bandID, albumID);
+                    database.songDAO().insert(newSong);
+                });
     }
 
     public void scan() {
-        Optional<File> mcotpRoot = findMcotpRoot();
-        mcotpRoot.ifPresent(root -> scanSdcard(root));
+        Optional<File> maybeRoot = findMcotpRoot();
+        maybeRoot.ifPresent(this::scanCollection);
     }
 }

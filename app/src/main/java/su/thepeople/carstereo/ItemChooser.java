@@ -46,7 +46,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected int getId(Album a) {
             return a.uid;
         }
-        @Override protected ArrayList<Album> unbundle(Bundle bundle) {
+        @Override @SuppressWarnings("unchecked") protected ArrayList<Album> unbundle(Bundle bundle) {
             return (ArrayList<Album>) bundle.getSerializable("ALBUMS");
         }
         @Override protected boolean shouldShowScrollers() { return false; }
@@ -62,7 +62,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected int getId(Band b) {
             return b.uid;
         }
-        @Override protected ArrayList<Band> unbundle(Bundle bundle) {
+        @Override @SuppressWarnings("unchecked") protected ArrayList<Band> unbundle(Bundle bundle) {
             return (ArrayList<Band>) bundle.getSerializable("BANDS");
         }
         @Override protected boolean shouldShowScrollers() { return true; }

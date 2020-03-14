@@ -23,7 +23,6 @@ public abstract class Database extends RoomDatabase {
     public abstract SongDAO songDAO();
 
     private static volatile Database instance = null;
-    private static Thread workerThread = null;
 
     public static Database getDatabase(Context context) throws NoLibraryException {
         // Use a singleton Database for the entire application.
