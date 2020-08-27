@@ -19,10 +19,16 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Integer.class);
         cb_requestBands = registerCallback(this::onRequestBandList);
         cb_requestAlbums = registerCallback(this::onRequestAlbumList);
+        cb_restartCurrentSong = registerCallback(this::onRestartCurrentSong);
+        cb_restartCurrentAlbum = registerCallback(this::onRestartCurrentAlbum);
     }
 
     // Pauses or unpauses the player.
     public void togglePlayPause() { callInterThread(cb_playPause); }
+
+    public void restartCurrentSong() { callInterThread(cb_restartCurrentSong); }
+
+    public void restartCurrentAlbum() { callInterThread(cb_restartCurrentAlbum); }
 
     // Moves ahead to next song.
     public void skipAhead() {
@@ -69,6 +75,8 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onLockSpecificAlbum(int albumId);
     protected abstract void onRequestBandList();
     protected abstract void onRequestAlbumList();
+    protected abstract void onRestartCurrentSong();
+    protected abstract void onRestartCurrentAlbum();
 
     private int cb_playPause;
     private int cb_skip;
@@ -80,4 +88,6 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     private int cb_lockSpecificAlbum;
     private int cb_requestBands;
     private int cb_requestAlbums;
+    private int cb_restartCurrentSong;
+    private int cb_restartCurrentAlbum;
 }

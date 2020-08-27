@@ -5,4 +5,7 @@
     <string name="please_wait">Hold your horses there, Charlie!</string>
     <string name="error">Error</string>
     <string name="no_library">Cannot find music library!</string>
+    <string name="first_song">First Song</string>
+    <string name="replay_song">Replay This Song</string>
+    <string name="next_song">Next Song</string>
 </resources>

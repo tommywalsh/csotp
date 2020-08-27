@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     // Activity IDs for the sub-activities that we expect to supply us with a result.
     private static final int ALBUM_CHOOSER = 1;
     private static final int BAND_CHOOSER = 2;
+    private static final int SONG_CHOOSER = 3;
 
     // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
     RecursionLock callbackLock = new RecursionLock();
@@ -177,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
 
         nextSongWidget = findViewById(R.id.next);
         nextSongWidget.setOnClickListener(view -> onNextSongRequest());
+        nextSongWidget.setOnLongClickListener(view -> onSongChooserRequest());
 
         // Register to receive Bluetooth events
         IntentFilter filter = new IntentFilter();
@@ -248,17 +250,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * This method is called when the user has chosen an item (album or band) from an item picker. We need to relay
-     * the user's choice over to the music controller.
+     * For songs, we use a different strategy than for bands and albums, because we have no need to query the backend.
+     * We always provide the same 2-3 options: "restart song", "next song", and (if we are in album mode) "go to first
+     * song".
+     */
+    private boolean onSongChooserRequest() {
+
+        Intent intent = new Intent(MainActivity.this, SongChooser.class);
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("SHOW_FIRST_SONG", true);
+        intent.putExtras(bundle);
+
+        Log.d(LOG_ID, "Starting song chooser");
+        MainActivity.this.startActivityForResult(intent, SONG_CHOOSER);
+        return true;
+    }
+
+    /**
+     * This method is called when the user has completed a sub-activity (e.g. has chosen a band to lock on)
      */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
-            int itemId = result.getIntExtra("ITEM_ID", -1);
             if (requestCode == ALBUM_CHOOSER) {
+                int itemId = result.getIntExtra("ITEM_ID", -1);
                 controller.lockSpecificAlbum(itemId);
             } else if (requestCode == BAND_CHOOSER) {
+                int itemId = result.getIntExtra("ITEM_ID", -1);
                 controller.lockSpecificBand(itemId);
+            } else if (requestCode == SONG_CHOOSER) {
+                int itemId = result.getIntExtra("SONG_SPECIFIER", -1);
+                if (itemId == SongChooser.NEXT_SONG) {
+                    controller.skipAhead();
+                } else if (itemId == SongChooser.THIS_SONG) {
+                    controller.restartCurrentSong();
+                } else if (itemId == SongChooser.FIRST_SONG) {
+                    controller.restartCurrentAlbum();
+                }
             }
         }
     }

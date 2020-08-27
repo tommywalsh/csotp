@@ -132,4 +132,8 @@ class MusicPlayer {
         }
         shouldBePlaying = false;
     }
+
+    public void restartCurrent() {
+        androidPlayer.seekTo(0);
+    }
 }

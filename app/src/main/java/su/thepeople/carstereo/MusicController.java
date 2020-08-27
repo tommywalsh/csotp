@@ -123,6 +123,17 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
+        protected void onRestartCurrentSong() {
+            musicPlayer.restartCurrent();
+        }
+
+        @Override
+        protected void onRestartCurrentAlbum() {
+            enterAlbumLock();
+            MusicController.this.replenishPlaylist(true);
+        }
+
+        @Override
         protected void onToggleBandMode() {
             if (mode == PlayMode.BAND) {
                 mode = PlayMode.SHUFFLE;
@@ -140,22 +151,26 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
         }
 
+        private void enterAlbumLock() {
+            SongInfo song = musicPlayer.getCurrentSong();
+            if (song != null && song.album != null) {
+                long albumId = song.album.uid;
+                songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
+                mode = PlayMode.ALBUM;
+                MusicController.this.replenishPlaylist(false);
+                mainActivity.notifyPlayModeChange(false, true);
+            }
+        }
         @Override
         protected void onToggleAlbumMode() {
             if (mode == PlayMode.ALBUM) {
                 mode = PlayMode.SHUFFLE;
                 songProvider = new SongProvider.ShuffleProvider(database);
                 MusicController.this.replenishPlaylist(true);
+                mainActivity.notifyPlayModeChange(false, false);
             } else {
-                SongInfo song = musicPlayer.getCurrentSong();
-                if (song != null && song.album != null) {
-                    long albumId = song.album.uid;
-                    songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
-                    mode = PlayMode.ALBUM;
-                    MusicController.this.replenishPlaylist(false);
-                }
+                enterAlbumLock();
             }
-            mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
         }
 
         @Override
