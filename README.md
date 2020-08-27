@@ -77,6 +77,15 @@ long-press on the band or album button and then select your choice from the list
 This is a more complicated operation that requires a little bit of attention, so wait until you're
 at a red light to do this, okay?
 
+## How to install CSotP in your car
+1) Rip out your OEM car stereo and throw it in the trash can.
+2) Install a simple 12V bluetooth receiver/amplifier in its place. Ideally this will have an analog
+volume knob and absolutely no other controls.
+3) Get a cheap used Android device and install this software onto it.
+4) Configure the device to auto-connect to your receiver.
+5) Attach device to your dashboard with velcro tape.
+
+
 # But, why? (A rant/manifesto)
 
 Why write a custom player? Why not just use something that's already available? Basically, 
@@ -84,49 +93,48 @@ because I could find nothing that works acceptably.
 
 ## Why not use a purpose-built car stereo?
 
-Because they are very expensive. And, the UIs are absolutely terrible (and not customizable).
+Because they are very expensive. And, the UIs are absolutely terrible -- not just hard to use, but
+ actually dangerous to use!
 
 ## Why use Android?
 
 Since this is intended to play music files from an SD card, and since I needed a custom-written 
 interface, I cannot use something like an Arduino or custom hardware... at least not easily.
 
-I did consider a Raspberry Pi, but that had some issues that I don't need to worry about with
-something like an Android or IOS device.
-
-With Android or IOS, we have these nice features:
+I did consider a Raspberry Pi, but an Android or IOS device has these significant advantages:
 * These devices have batteries, and are electrically isolated from the rest of the vehicle. This
 is important because a car's power is very very noisy (well, at least it is in the kinds of cars I
-drive). This isolation prevents this noise from being conducted into the audio signal. The car's 
-noisy power line is only used to charge the battery.
-* Audio can be transmitted digitally via Bluetooth instead of by wire, which eliminates radiated 
+drive). The isolation prevents this noise from being introduced into the audio signal. The car's 
+noisy power line is solely used to charge the battery.
+* Audio can be transmitted digitally via Bluetooth instead of by wire, which eliminates any radiated 
 interference from affecting the audio signal.
-* Screen can be set to auto-dim based on ambient light, so the screen will always be appropriately
+* The screen can be set to auto-dim based on ambient light, so the screen will always be appropriately
 bright.
 * Touch screen "just works", and doesn't require any calibration.
-* UI is designed for touchscreen apps, and no special settings are needed to hide mouse pointers, 
-window manager decoration, etc.
+* The stock UI is designed for touchscreen apps, and no special settings are needed to hide mouse 
+pointers, window manager decoration, etc.
 
 I picked Android over IOS because I happen to have an old Android device that was laying around. I
-only need to add a simple 12V Bluetooth amplifier, which can be had for very cheap money.
+only needed to add a simple 12V Bluetooth amplifier, which can be had for very cheap money.
 
 
 
 ## Why not use an existing Android player?
 
-Here are some aspects I find problematic about most currently-available Android players:
+Here are some aspects I find problematic about most currently-available Android players.
 
 ### Tiny controls
 
 When I want to skip forward one song, I want to do it **right now**. I don't want to have to 
 navigate or scroll anywhere to find the controls. I don't want to have to carefully aim my finger 
 at a tiny button, and then navigate back if my thumb was 4 pixels off. I want a nice big "next" 
-button that I can see out of the corner of my eye and be able to press without concentrating.
+button that I can see out of the corner of my eye and be able to press while still concentrating on
+driving.
 
 Most existing Android players confine their controls to a tiny area of the screen, and devote the
 rest of the screen to stuff I don't care about, like grids full of album art, or artist bios, or 
  even ads. It seems that these are geared towards people who, for some reason, want to "interact" 
- with their music on a screen. I don't want to do that. I just want to listen to music.
+ with their music visually on a screen. I don't want to do that. I just want to listen to it.
 
 ### Inconsistent information
 
@@ -141,7 +149,7 @@ seen when using existing Android players that use in-file tags:
 
 * Incorrect separations. According to tags, I have music by three totally separate bands named 
 "Echo & the Bunnymen", "Echo and the Bunnymen" and "Echo And The Bunnymen". I also have three
-totally different Replacements albums, named "Tim", "Tim (1985)", and "Tim [remastered]". Yuck.
+totally different Replacements albums, named "Tim", "Tim (1985)", and "Tim (remastered)". Yuck.
 
 * Metadata with negative value. This takes up screen real estate, and adds complexity in navigation,
  while providing zero benefit. For example, players will try to organize by genre, but...
@@ -168,19 +176,19 @@ I basically have two choices for how to listen to music:
 1) I can use an SD card smaller than my fingernail. On this, I can store like 5000 albums 
 worth of music. Then, I can have all of my music with me everywhere I go, for the rest of my life.
 
-2) I can stream music over the internet, which means I am relying on...
+2) I can stream music over the internet, which means I am relying on the following.
 
-* Having decent-speed data service any time I want to listen to music. Driving in 
+* I need to having decent-speed data service any time I want to listen to music. Driving in 
 rural Vermont? No streaming.
 
-* Some crappy tech company having up-to-date licensing agreements in place with all of the (even
+* Some crappy tech company needs to have up-to-date licensing agreements in place with all of the (even
 crappier) multinational rights-owning conglomerates that hold the rights to some of the songs I 
 want to listen to. Someday, Google Play Music will get into a contract dispute with Universal Music
 Group, and then I won't be able to listen to Paul's Boutique anymore.
 
-* That crappy tech company actually making the music I want to listen to available and discoverable.
-If I want to listen to The Broken Toys, an 80s hardcore band from Lawrence, Mass, can I find that
-on Spotify?  Nope.
+* That crappy tech company actually needs to find all the music I want to listen to, and make it 
+available and discoverable.  What are the chances that Google Music will have the "Smash Some Pumpkins"
+single from the The Broken Toys (an 80s hardcore band from Lawrence, Mass)?
 
 The first option is obviously vastly superior. I'd almost need to be insane to choose #2. Yet,
 every time I open Google Play Music, it brings me to a screen full of streamable stuff instead of
@@ -207,7 +215,7 @@ back to the beginning of the album, instead of just continuing to play.
 
 ### Leaky abstractions
 
-I do understand that music-playing software has concepts like "queues", "playlists", "shuffle",
+I do understand that music-playing software needs to have concepts like "queues", "playlists", "shuffle",
 "repeat", and "consume".  But, as a user, I rarely care about such things, and I don't usually want
 to adjust them all independently -- they should normally be hidden away.
 
@@ -216,6 +224,11 @@ specific album". In the former, I want shuffle turned on, but not in the latter.
 to have to separately adjust multiple options like this all the time.
 
 I've been on this planet almost fifty years, and I don't think I've ever run into a 
-situation where I felt it was appropriate to shuffle an album. And, yet music players treat
+situation where I felt it was appropriate to shuffle a single album. And, yet music players treat
 "shuffle" as if it were a long-lived user preference to be preserved across all contexts.
 
+### Summary
+
+In summary, Android/IOS music players are apparently made by people who don't like to listen to
+music, and purpose-built car stereos are made by people who also don't like music, and in addition
+aren't particularly good at writing software. 
