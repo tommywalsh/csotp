@@ -1,8 +1,8 @@
 # CSoTP: Car Stereo of The People
 
 This is an Android app designed to play on-disk music in a car. It is intended to be used on a 
-device that is attached to the car dashboard (not held in a hand), and which communicates with a 
-built-in amplifier/receiver using Bluetooth.
+dedicated device that is attached to the car dashboard (not held in a hand), and which communicates 
+with a built-in amplifier/receiver using Bluetooth.
 
 # About CSoTP
 
@@ -14,8 +14,8 @@ car stereo. Nothing. So, I had to make my own.
 The Car Stereo of The People is based on these three principles:
 
 * Metadata should be gleaned from on-disk directory structure, not from in-file tags. This gives a
- very limited amount of metadata, but it is consistent and easy to maintain. In-file tags give large 
- amounts of metadata, but it tends to be inconsistent and mostly useless.
+ very limited amount of metadata, but it is consistent and easy to maintain. In contrast, in-file 
+ tags give large amounts of metadata, but it tends to be inconsistent and mostly useless.
  
 * There are only a handful of simple "play modes", which should be easy to cycle between with one
  touch. There is no need to provide access to low-level primitives like playlists and repeat modes.
@@ -41,12 +41,15 @@ If a song is not part of an album then it should be stored like this:
 ```
 
 This app does not support having multiple bands or albums for the same song file. If you really want
-that, you can simply copy the file into two or more different directories.
+that, you can simply copy (or symlink) the file into two or more different directories.
 
 ### Controlling playback
 
-There are two buttons that control playback. There is a "play/pause" button and a "next" button. 
+There are two buttons on the main screen that control playback. There is a "play/pause" button and a "next" button. 
 That's it.
+
+There are also a couple of other options for song navigation. If you long-press on the "next song"
+button, you'll get a chance to jump back to the beginning of the current song or the current album. 
 
 ### Controlling song selection
 
@@ -72,19 +75,21 @@ will switch back to entire-collection mode.
 ### More complicated operations
 
 You can also enter band or album mode for something you are not currently listening to. To do this,
-long-press on the band or album button and then select your choice from the list.
+long-press on the band or album button and then select your choice from the list. There are buttons
+on either side of the list to handle quick course/fine scroll changes.
 
 This is a more complicated operation that requires a little bit of attention, so wait until you're
 at a red light to do this, okay?
+
 
 ## How to install CSotP in your car
 1) Rip out your OEM car stereo and throw it in the trash can.
 2) Install a simple 12V bluetooth receiver/amplifier in its place. Ideally this will have an analog
 volume knob and absolutely no other controls.
 3) Get a cheap used Android device and install this software onto it.
-4) Configure the device to auto-connect to your receiver.
-5) Attach device to your dashboard with velcro tape.
-
+4) Configure the device to auto-connect to your receiver, and to auto-adjust its brightness.
+5) Attach Android device to your dashboard with duct tape.
+6) Run a USB charger to your car's cigarette lighter and leave it plugged in.
 
 # But, why? (A rant/manifesto)
 
@@ -93,8 +98,8 @@ because I could find nothing that works acceptably.
 
 ## Why not use a purpose-built car stereo?
 
-Because they are very expensive. And, the UIs are absolutely terrible -- not just hard to use, but
- actually dangerous to use!
+Because they are very expensive. And, the UIs are absolutely terrible -- not just annoying to use,
+but actually dangerous to use while driving!
 
 ## Why use Android?
 
@@ -123,7 +128,7 @@ only needed to add a simple 12V Bluetooth amplifier, which can be had for very c
 
 Here are some aspects I find problematic about most currently-available Android players.
 
-### Tiny controls
+### Tiny, disappearing controls
 
 When I want to skip forward one song, I want to do it **right now**. I don't want to have to 
 navigate or scroll anywhere to find the controls. I don't want to have to carefully aim my finger 
@@ -201,11 +206,11 @@ something comes on that I want to listen to more of. Let's say Guadalcanal Diary
 comes on, and that makes me want to listen to that whole album.
 
 I would typically have to do something like this in most existing players that I've seen:
-* Navigate to a "Library" screen
-* Navigate to an "Artists" tab
+* Navigate to a "Library" screen.
+* Navigate to an "Artists" tab. This will open at the very beginning of the alphabet.
 * Manually scroll all the way down to "Guadalcanal Diary", or else open up a search widget.
-* Select the band
-* Find the album "2x4", select it, and click "play"
+* Select the band.
+* Find the album "2x4", select it, and click "play".
 
 This is infuriatingly complex to do, even if I'm just sitting in a chair. It is impossible to do 
 safely while driving.
@@ -216,7 +221,7 @@ back to the beginning of the album, instead of just continuing to play.
 ### Leaky abstractions
 
 I do understand that music-playing software needs to have concepts like "queues", "playlists", "shuffle",
-"repeat", and "consume".  But, as a user, I rarely care about such things, and I don't usually want
+"repeat", and "consume" **internally**.  But, as a user, I rarely care about such things, and I don't usually want
 to adjust them all independently -- they should normally be hidden away.
 
 For example, there is a difference between "listening to my music collection" and "listening to one
@@ -230,5 +235,5 @@ situation where I felt it was appropriate to shuffle a single album. And, yet mu
 ### Summary
 
 In summary, Android/IOS music players are apparently made by people who don't like to listen to
-music, and purpose-built car stereos are made by people who also don't like music, and in addition
+music. Purpose-built car stereos are made by people who also don't like music, and in addition
 aren't particularly good at writing software. 

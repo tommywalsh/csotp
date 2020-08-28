@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -27,14 +28,14 @@ public class SongChooser extends AppCompatActivity {
 
         setContentView(R.layout.activity_song_chooser);
 
-        Button firstSongButton = findViewById(R.id.first_song);
+        ImageButton firstSongButton = findViewById(R.id.first_song);
         firstSongButton.setEnabled(bundle.getBoolean("SHOW_FIRST_SONG"));
         firstSongButton.setOnClickListener(v -> chooseSong(FIRST_SONG));
 
-        Button thisSongButton = findViewById(R.id.this_song);
+        ImageButton thisSongButton = findViewById(R.id.this_song);
         thisSongButton.setOnClickListener(v -> chooseSong(THIS_SONG));
 
-        Button nextSongButton = findViewById(R.id.next_song);
+        ImageButton nextSongButton = findViewById(R.id.next_song);
         nextSongButton.setOnClickListener(v -> chooseSong(NEXT_SONG));
     }
 
