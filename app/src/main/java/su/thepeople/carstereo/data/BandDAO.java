@@ -19,6 +19,9 @@ public interface BandDAO {
     @Query("SELECT * FROM Band WHERE uid = :bandId")
     Band lookup(long bandId);
 
+    @Query("SELECT * FROM Band ORDER BY random() LIMIT 1")
+    Band getRandom();
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Band band);
 }

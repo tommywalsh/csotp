@@ -4,5 +4,6 @@
     <string name="scanning_message">Now Scanning</string>
     <string name="please_wait">Hold your horses there, Charlie!</string>
     <string name="error">Error</string>
+    <string name="double_shot">Double-Shot Weekend!</string>
     <string name="no_library">Cannot find music library!</string>
 </resources>

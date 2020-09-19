@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -35,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView songWidget;
     private ImageButton playPauseWidget;
     private ImageButton nextSongWidget;
+    private TextView messageWidget;
 
     // Other parts of the app that we need to communicate with.
     private MusicControllerAPI controller;
@@ -65,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
                 bandWidget.setChecked(mode.isBandLocked);
                 albumWidget.setChecked(mode.isAlbumLocked);
             });
+            messageWidget.setVisibility(View.INVISIBLE);
         }
 
         @Override
@@ -79,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onCurrentSongChange(SongInfo currentSong) {
-            Log.d(LOG_ID, String.format("Reaching to song change: (%s)(%s)(%s)",
+            Log.d(LOG_ID, String.format("Reacting to song change: (%s)(%s)(%s)",
                     currentSong.band.name,
                     currentSong.album == null ? "<none>" : currentSong.album.name,
                     currentSong.song.name));
@@ -173,8 +176,12 @@ public class MainActivity extends AppCompatActivity {
         songWidget = findViewById(R.id.song);
         songWidget.setSelected(true);
 
+        messageWidget = findViewById(R.id.message);
+        messageWidget.setVisibility(View.INVISIBLE);
+
         playPauseWidget = findViewById(R.id.playPause);
         playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
+        playPauseWidget.setOnLongClickListener(view -> onPlayModeChooserRequest());
 
         nextSongWidget = findViewById(R.id.next);
         nextSongWidget.setOnClickListener(view -> onNextSongRequest());
@@ -263,6 +270,15 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(LOG_ID, "Starting song chooser");
         MainActivity.this.startActivityForResult(intent, SONG_CHOOSER);
+        return true;
+    }
+
+    private boolean onPlayModeChooserRequest() {
+        Log.d(LOG_ID, "User wants to choose play mode");
+        // Eventually, we'll probably have a "play mode chooser" UI. For now, we just toggle double-shot mode.
+        controller.toggleDoubleShotMode();
+        int newVisibility = messageWidget.getVisibility() == View.VISIBLE ? View.INVISIBLE : View.VISIBLE;
+        messageWidget.setVisibility(newVisibility);
         return true;
     }
 

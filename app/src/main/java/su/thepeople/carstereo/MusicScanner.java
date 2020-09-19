@@ -66,12 +66,14 @@ public class MusicScanner {
     private void scanBandDir(long bandID, File bandDir) {
         Log.d(LOG_TAG, String.format("Scanning band directory %s", bandDir.getName()));
         Utils.dirContentsStream(bandDir)
-                .filter(f -> !f.getName().startsWith("["))
                 .forEach(f -> {
                     if (f.isDirectory()) {
-                        Log.d(LOG_TAG, String.format("Found album %s", f.getName()));
-                        Album newAlbum = new Album(f.getName(), bandID);
-                        long albumID = database.albumDAO().insert(newAlbum);
+                        Long albumID = null;  // Using null for dirs that are not real albums
+                        if (!f.getName().startsWith("[")) {
+                            Log.d(LOG_TAG, String.format("Found album %s", f.getName()));
+                            Album newAlbum = new Album(f.getName(), bandID);
+                            albumID = database.albumDAO().insert(newAlbum);
+                        }
                         scanAlbumDir(bandID, albumID, f);
                     } else if (f.isFile()) {
                         Log.d(LOG_TAG, String.format("Found loose song %s", f.getName()));
@@ -81,7 +83,7 @@ public class MusicScanner {
                 });
     }
 
-    private void scanAlbumDir(long bandID, long albumID, File albumDir) {
+    private void scanAlbumDir(long bandID, Long albumID, File albumDir) {
         Utils.dirContentsStream(albumDir)
                 .filter(File::isFile)
                 .filter(f -> !f.getName().startsWith("["))

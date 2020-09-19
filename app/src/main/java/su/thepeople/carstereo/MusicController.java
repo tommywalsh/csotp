@@ -2,6 +2,7 @@ package su.thepeople.carstereo;
 
 import android.content.Context;
 import android.os.Looper;
+import android.util.Log;
 
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
@@ -10,6 +11,7 @@ import su.thepeople.carstereo.data.NoLibraryException;
 import su.thepeople.carstereo.data.Song;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
  * passes on more detailed instructions to the music player.
  */
 public class MusicController extends LooperThread<MusicControllerAPI> {
+
+    private static final String LOG_ID = "MusicController";
 
     // This object handles communications from other object in the system (including ones on other threads)
     private MusicControllerAPI api;
@@ -131,6 +135,23 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         protected void onRestartCurrentAlbum() {
             enterAlbumLock();
             MusicController.this.replenishPlaylist(true);
+        }
+
+        @Override
+        protected void onToggleDoubleShotMode() {
+            if (mode == PlayMode.SHUFFLE) {
+                Log.d(LOG_ID, "Double shot toggle");
+
+                // This "instanceof" is yucky. Maybe refactor if/when we add more than just the double-shot option here.
+                if (songProvider instanceof SongProvider.ShuffleProvider) {
+                    SongInfo song = musicPlayer.getCurrentSong();
+                    Optional<Band> startingBand = (song == null) ? Optional.empty() : Optional.of(song.band);
+                    songProvider = new SongProvider.DoubleShotProvider(database, startingBand);
+                } else {
+                    songProvider = new SongProvider.ShuffleProvider(database);
+                }
+                MusicController.this.replenishPlaylist(false);
+            }
         }
 
         @Override

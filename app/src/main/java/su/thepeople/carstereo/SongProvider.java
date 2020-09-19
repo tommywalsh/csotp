@@ -2,6 +2,7 @@ package su.thepeople.carstereo;
 
 import android.util.Log;
 
+import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
@@ -40,6 +41,29 @@ public abstract class SongProvider {
         public List<Song> getNextBatch() {
             Log.d(LOG_ID, String.format("Getting next batch of %d random songs", BATCH_SIZE));
             return getDatabase().songDAO().getRandomBatch(BATCH_SIZE);
+        }
+    }
+
+    /**
+     * Double-Shot Weekend. We pick a band at random, play two random songs, then move to the next random band, etc.
+     */
+    public static class DoubleShotProvider extends SongProvider {
+        Band nextBand;
+        int batchSize;
+
+        DoubleShotProvider(Database database, Optional<Band> startingBand) {
+            super(database);
+            nextBand = startingBand.orElse(getDatabase().bandDAO().getRandom());
+            batchSize = startingBand.map(band -> 1).orElse(2);
+        }
+
+        public List<Song> getNextBatch() {
+            Log.d(LOG_ID, String.format("Using %s for this double shot", nextBand.name));
+            long thisBandId = nextBand.uid;
+            List<Song> songs = getDatabase().songDAO().getSomeForBand(thisBandId, batchSize);
+            nextBand = getDatabase().bandDAO().getRandom();
+            batchSize = 2;
+            return songs;
         }
     }
 
