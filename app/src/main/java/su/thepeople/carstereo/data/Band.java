@@ -13,7 +13,7 @@ import java.io.Serializable;
 public class Band implements Serializable {
 
     @PrimaryKey(autoGenerate = true)
-    public int uid;
+    public long uid;
 
     @NonNull
     public String name;

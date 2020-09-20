@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 @Entity
 public class Song {
     @PrimaryKey(autoGenerate = true)
-    public int uid;
+    public long uid;
 
     @NonNull
     public String name;

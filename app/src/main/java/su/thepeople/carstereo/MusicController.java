@@ -222,7 +222,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         @Override
         protected void onRequestAlbumList() {
-            int bandId = musicPlayer.getCurrentSong().band.uid;
+            long bandId = musicPlayer.getCurrentSong().band.uid;
             List<Album> albums = database.albumDAO().getAllForBand(bandId);
             mainActivity.fulfillAlbumListRequest(albums);
         }

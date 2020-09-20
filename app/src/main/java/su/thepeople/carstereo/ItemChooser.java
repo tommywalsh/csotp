@@ -32,7 +32,7 @@ import su.thepeople.carstereo.data.Band;
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
     protected abstract String getName(T obj);
-    protected abstract int getId(T obj);
+    protected abstract long getId(T obj);
     protected abstract ArrayList<T> unbundle(Bundle bundle);
     protected abstract boolean shouldShowScrollers();
 
@@ -43,7 +43,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected String getName(Album a) {
             return a.name;
         }
-        @Override protected int getId(Album a) {
+        @Override protected long getId(Album a) {
             return a.uid;
         }
         @Override @SuppressWarnings("unchecked") protected ArrayList<Album> unbundle(Bundle bundle) {
@@ -59,7 +59,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected String getName(Band b) {
             return b.name;
         }
-        @Override protected int getId(Band b) {
+        @Override protected long getId(Band b) {
             return b.uid;
         }
         @Override @SuppressWarnings("unchecked") protected ArrayList<Band> unbundle(Bundle bundle) {
@@ -93,7 +93,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
 
         private void onItemSelect(View view) {
             Integer listPosition = (Integer) view.getTag();
-            int id = getId(items.get(listPosition));
+            long id = getId(items.get(listPosition));
             Intent intent = new Intent();
             intent.putExtra("ITEM_ID", id);
             setResult(Activity.RESULT_OK, intent);
