@@ -15,8 +15,8 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_bandMode = registerCallback(this::onToggleBandMode);
         cb_albumMode = registerCallback(this::onToggleAlbumMode);
         cb_replenish = registerCallback(this::onReplenishPlaylist);
-        cb_lockSpecificBand = registerCallback(this::onLockSpecificBand, Integer.class);
-        cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Integer.class);
+        cb_lockSpecificBand = registerCallback(this::onLockSpecificBand, Long.class);
+        cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Long.class);
         cb_requestBands = registerCallback(this::onRequestBandList);
         cb_requestAlbums = registerCallback(this::onRequestAlbumList);
         cb_restartCurrentSong = registerCallback(this::onRestartCurrentSong);
@@ -57,10 +57,10 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     }
 
     // "Locks" on the band specified (regardless of which band is currently playing)
-    public void lockSpecificBand(int bandId) { callInterThread(cb_lockSpecificBand, bandId); }
+    public void lockSpecificBand(long bandId) { callInterThread(cb_lockSpecificBand, bandId); }
 
     // "Locks" on the album specified (regardless of which album is currently playing)
-    public void lockSpecificAlbum(int albumId) { callInterThread(cb_lockSpecificAlbum, albumId); }
+    public void lockSpecificAlbum(long albumId) { callInterThread(cb_lockSpecificAlbum, albumId); }
 
     // Sends UI a list of all bands in the collection.
     public void requestBandList() { callInterThread(cb_requestBands); }
@@ -74,8 +74,8 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onToggleBandMode();
     protected abstract void onToggleAlbumMode();
     protected abstract void onReplenishPlaylist();
-    protected abstract void onLockSpecificBand(int bandId);
-    protected abstract void onLockSpecificAlbum(int albumId);
+    protected abstract void onLockSpecificBand(long bandId);
+    protected abstract void onLockSpecificAlbum(long albumId);
     protected abstract void onRequestBandList();
     protected abstract void onRequestAlbumList();
     protected abstract void onRestartCurrentSong();

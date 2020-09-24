@@ -289,10 +289,10 @@ public class MainActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
             if (requestCode == ALBUM_CHOOSER) {
-                int itemId = result.getIntExtra("ITEM_ID", -1);
+                long itemId = result.getLongExtra("ITEM_ID", -1);
                 controller.lockSpecificAlbum(itemId);
             } else if (requestCode == BAND_CHOOSER) {
-                int itemId = result.getIntExtra("ITEM_ID", -1);
+                long itemId = result.getLongExtra("ITEM_ID", -1);
                 controller.lockSpecificBand(itemId);
             } else if (requestCode == SONG_CHOOSER) {
                 int itemId = result.getIntExtra("SONG_SPECIFIER", -1);

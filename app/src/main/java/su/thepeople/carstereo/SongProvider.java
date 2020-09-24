@@ -138,7 +138,7 @@ public abstract class SongProvider {
         // This will be set only for the first batch.
         private Optional<Long> previousSongId;
 
-        AlbumProvider(Database database, int albumId) {
+        AlbumProvider(Database database, long albumId) {
             super(database);
             this.albumId = albumId;
             this.previousSongId = Optional.empty();  // empty here means start from the first song.

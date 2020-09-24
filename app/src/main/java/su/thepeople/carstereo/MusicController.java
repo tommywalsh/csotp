@@ -200,7 +200,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
-        protected void onLockSpecificBand(int bandId) {
+        protected void onLockSpecificBand(long bandId) {
             songProvider = new SongProvider.BandProvider(database, bandId);
             mode = PlayMode.BAND;
             MusicController.this.replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
@@ -208,7 +208,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
-        protected void onLockSpecificAlbum(int albumId) {
+        protected void onLockSpecificAlbum(long albumId) {
             songProvider = new SongProvider.AlbumProvider(database, albumId);
             mode = PlayMode.ALBUM;
             MusicController.this.replenishPlaylist(true);
