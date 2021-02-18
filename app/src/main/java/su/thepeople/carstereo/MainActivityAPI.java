@@ -9,6 +9,8 @@ import java.util.List;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 
+import su.thepeople.carstereo.MusicController.PlayMode;
+
 /**
  * This class defines the MainActivity functionality that is available from outside the UI thread.
  *
@@ -19,12 +21,8 @@ import su.thepeople.carstereo.data.Band;
  */
 public abstract class MainActivityAPI extends InterThreadAPI {
 
-    public void notifyPlayModeChange(boolean isBandLocked, boolean isAlbumLocked, boolean isYearLocked) {
-        PlayMode mode = new PlayMode();
-        mode.isBandLocked = isBandLocked;
-        mode.isAlbumLocked = isAlbumLocked;
-        mode.isYearLocked = isYearLocked;
-        callInterThread(cb_playMode, mode);
+    public void notifyPlayModeChange(PlayMode playMode) {
+        callInterThread(cb_playMode, playMode);
     }
 
     public void notifyPlayStateChange(boolean isPlaying) { callInterThread(cb_playState, isPlaying); }
@@ -63,12 +61,6 @@ public abstract class MainActivityAPI extends InterThreadAPI {
 
     protected Looper getLooper() {
         return Looper.getMainLooper();
-    }
-
-    protected static class PlayMode {
-        boolean isBandLocked;
-        boolean isAlbumLocked;
-        boolean isYearLocked;
     }
 
     protected static class BandListWrapper implements Serializable {

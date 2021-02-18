@@ -16,6 +16,8 @@ import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import su.thepeople.carstereo.MusicController.PlayMode;
+
 /**
  * A full-screen activity that plays on-disk music files. This is intended to be used as a car stereo.
  *
@@ -64,11 +66,11 @@ public class MainActivity extends AppCompatActivity {
         protected void onPlayModeChange(PlayMode mode) {
             callbackLock.run(() -> {
                 Log.d(LOG_ID, String.format("Reacting to play mode change: band is%s locked, album is%s locked",
-                        mode.isBandLocked ? "" : " not",
-                        mode.isAlbumLocked ? "" : " not"));
-                bandWidget.setChecked(mode.isBandLocked);
-                albumWidget.setChecked(mode.isAlbumLocked);
-                yearWidget.setChecked(mode.isYearLocked);
+                        mode == PlayMode.BAND ? "" : " not",
+                        mode == PlayMode.ALBUM ? "" : " not"));
+                bandWidget.setChecked(mode == PlayMode.BAND);
+                albumWidget.setChecked(mode == PlayMode.ALBUM);
+                yearWidget.setChecked(mode == PlayMode.YEAR);
             });
             messageWidget.setVisibility(View.INVISIBLE);
         }
