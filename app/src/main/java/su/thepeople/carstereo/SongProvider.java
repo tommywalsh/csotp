@@ -61,17 +61,8 @@ public abstract class SongProvider {
         }
 
         public List<Song> getNextBatch() {
-            List<Song> batch = new ArrayList<>();
-            for (int i = 0; i < BATCH_SIZE; i++) {
-                Album album = getDatabase().albumDAO().getRandomForEra(firstYear, lastYear);
-                if (album != null) {
-                    List<Song> songs = getDatabase().songDAO().getRandomFromAlbum(album.uid);
-                    if (songs != null && !songs.isEmpty()) {
-                        batch.add(songs.get(0));
-                    }
-                }
-            }
-            return batch;
+            Log.d(LOG_ID, String.format("Getting next batch of %d random songs between %d and %d", BATCH_SIZE, firstYear, lastYear));
+            return getDatabase().songDAO().getRandomBatchForEra(firstYear, lastYear, BATCH_SIZE);
         }
     }
 
