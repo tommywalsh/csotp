@@ -19,10 +19,11 @@ import su.thepeople.carstereo.data.Band;
  */
 public abstract class MainActivityAPI extends InterThreadAPI {
 
-    public void notifyPlayModeChange(boolean isBandLocked, boolean isAlbumLocked) {
+    public void notifyPlayModeChange(boolean isBandLocked, boolean isAlbumLocked, boolean isYearLocked) {
         PlayMode mode = new PlayMode();
         mode.isBandLocked = isBandLocked;
         mode.isAlbumLocked = isAlbumLocked;
+        mode.isYearLocked = isYearLocked;
         callInterThread(cb_playMode, mode);
     }
 
@@ -51,7 +52,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     private int cb_albumList;
     private int cb_exception;
 
-    public MainActivityAPI() {
+    protected MainActivityAPI() {
         cb_playMode = registerCallback(this::onPlayModeChange, PlayMode.class);
         cb_playState = registerCallback(this::onPlayStateChange, Boolean.class);
         cb_currentSong = registerCallback(this::onCurrentSongChange, SongInfo.class);
@@ -67,6 +68,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     protected static class PlayMode {
         boolean isBandLocked;
         boolean isAlbumLocked;
+        boolean isYearLocked;
     }
 
     protected static class BandListWrapper implements Serializable {

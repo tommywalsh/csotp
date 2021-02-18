@@ -65,6 +65,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
     private enum PlayMode {
         BAND,
         ALBUM,
+        YEAR,
         SHUFFLE
     }
     private PlayMode mode = PlayMode.SHUFFLE;
@@ -98,7 +99,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         private Looper looper;
 
-        public MusicControllerAPIImpl(Looper looper) {
+        protected MusicControllerAPIImpl(Looper looper) {
             this.looper = looper;
         }
 
@@ -169,7 +170,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
                     MusicController.this.replenishPlaylist(false);
                 }
             }
-            mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM);
+            mainActivity.notifyPlayModeChange(mode == PlayMode.BAND, mode == PlayMode.ALBUM, mode == PlayMode.YEAR);
         }
 
         private void enterAlbumLock() {
@@ -179,18 +180,43 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
                 songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
                 mode = PlayMode.ALBUM;
                 MusicController.this.replenishPlaylist(false);
-                mainActivity.notifyPlayModeChange(false, true);
+                mainActivity.notifyPlayModeChange(false, true, false);
             }
         }
+
+        private void enterYearLock() {
+            SongInfo song = musicPlayer.getCurrentSong();
+            if (song != null && song.album != null && song.album.year != null) {
+                int year = song.album.year;
+                songProvider = new SongProvider.EraProvider(database, year, year);
+                mode = PlayMode.YEAR;
+                MusicController.this.replenishPlaylist(false);
+                // TODO: add new locking mode
+                mainActivity.notifyPlayModeChange(false, false, true);
+            }
+        }
+
         @Override
         protected void onToggleAlbumMode() {
             if (mode == PlayMode.ALBUM) {
                 mode = PlayMode.SHUFFLE;
                 songProvider = new SongProvider.ShuffleProvider(database);
                 MusicController.this.replenishPlaylist(true);
-                mainActivity.notifyPlayModeChange(false, false);
+                mainActivity.notifyPlayModeChange(false, false, false);
             } else {
                 enterAlbumLock();
+            }
+        }
+
+        @Override
+        protected void onToggleYearMode() {
+            if (mode == PlayMode.YEAR) {
+                mode = PlayMode.SHUFFLE;
+                songProvider = new SongProvider.ShuffleProvider(database);
+                MusicController.this.replenishPlaylist(true);
+                mainActivity.notifyPlayModeChange(false, false, false);
+            } else {
+                enterYearLock();
             }
         }
 
@@ -204,7 +230,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             songProvider = new SongProvider.BandProvider(database, bandId);
             mode = PlayMode.BAND;
             MusicController.this.replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
-            mainActivity.notifyPlayModeChange(true, false);
+            mainActivity.notifyPlayModeChange(true, false, false);
         }
 
         @Override
@@ -212,7 +238,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             songProvider = new SongProvider.AlbumProvider(database, albumId);
             mode = PlayMode.ALBUM;
             MusicController.this.replenishPlaylist(true);
-            mainActivity.notifyPlayModeChange(false, true);
+            mainActivity.notifyPlayModeChange(false, true, false);
         }
 
         @Override

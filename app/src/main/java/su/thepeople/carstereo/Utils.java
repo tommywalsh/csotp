@@ -3,6 +3,8 @@ package su.thepeople.carstereo;
 import android.app.Activity;
 import android.view.View;
 
+import androidx.annotation.IdRes;
+
 import java.io.File;
 import java.util.Iterator;
 import java.util.stream.Stream;
@@ -16,7 +18,7 @@ class Utils {
      *
      * The user can, of course, use other apps occasionally, but our UI is not optimized for it.
      */
-    public static void hideSystemUI(Activity activity, int id) {
+    public static void hideSystemUI(Activity activity, @IdRes int id) {
         activity.findViewById(id).setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -41,7 +43,7 @@ class Utils {
     private static class FileAncestorIterator implements Iterator<File> {
         File currentItem;
 
-        public FileAncestorIterator(File child) {
+        protected FileAncestorIterator(File child) {
             currentItem = child;
         }
 

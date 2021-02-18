@@ -6,6 +6,7 @@ package su.thepeople.carstereo;
  * Clients of this class can call any of the non-private/protected methods from any thread. The call will automatically
  * be routed so that the request is serviced from the correct thread.
  */
+@SuppressWarnings("CanBeFinal")
 public abstract class MusicControllerAPI extends InterThreadAPI {
 
     protected MusicControllerAPI() {
@@ -14,6 +15,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_forcePause = registerCallback(this::onForcePause);
         cb_bandMode = registerCallback(this::onToggleBandMode);
         cb_albumMode = registerCallback(this::onToggleAlbumMode);
+        cb_yearMode = registerCallback(this::onToggleYearMode);
         cb_replenish = registerCallback(this::onReplenishPlaylist);
         cb_lockSpecificBand = registerCallback(this::onLockSpecificBand, Long.class);
         cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Long.class);
@@ -51,6 +53,10 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         callInterThread(cb_albumMode);
     }
 
+    public void toggleYearMode() {
+        callInterThread(cb_yearMode);
+    }
+
     // Generates a new batch of songs and sends them to the music player.
     public void replenishPlaylist() {
         callInterThread(cb_replenish);
@@ -73,6 +79,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onForcePause();
     protected abstract void onToggleBandMode();
     protected abstract void onToggleAlbumMode();
+    protected abstract void onToggleYearMode();
     protected abstract void onReplenishPlaylist();
     protected abstract void onLockSpecificBand(long bandId);
     protected abstract void onLockSpecificAlbum(long albumId);
@@ -87,6 +94,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     private int cb_forcePause;
     private int cb_bandMode;
     private int cb_albumMode;
+    private int cb_yearMode;
     private int cb_replenish;
     private int cb_lockSpecificBand;
     private int cb_lockSpecificAlbum;

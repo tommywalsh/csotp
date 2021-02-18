@@ -30,12 +30,12 @@ import java.util.function.Consumer;
 public abstract class InterThreadAPI {
 
     private static class CallbackWrapper<T> {
-        public Class<T> type;
-        public Consumer<T> callback;
+        protected Class<T> type;
+        protected Consumer<T> callback;
     }
 
     // All of the callback wrappers for this API will be stored in this list.
-    private List<CallbackWrapper<?>> callbackWrappers = new ArrayList<>();
+    private final List<CallbackWrapper<?>> callbackWrappers = new ArrayList<>();
 
     // The Android Handler which will receive the inter-thread messages.
     private Handler handler;

@@ -32,13 +32,15 @@ needs to be named "mcotp", and should be at the root level of your SD card.
 
 Each song that is part of an album should be stored in a path like this:
 ```
-/storage/0000-0000/mcotp/Band Name/Album Name/## - Song Title.ext
+/storage/0000-0000/mcotp/Band Name/#### - Album Name/## - Song Title.ext
 ```
+(where the #### is a 4-digit year, and the ## is the track number)
 
 If a song is not part of an album then it should be stored like this:
 ```
-/storage/0000-0000/mcotp/Band Name/Song Title.ext
+/storage/0000-0000/mcotp/Band Name/#### - Song Title.ext
 ```
+(where the #### is a 4-digit year)
 
 This app does not support having multiple bands or albums for the same song file. If you really want
 that, you can simply copy (or symlink) the file into two or more different directories.

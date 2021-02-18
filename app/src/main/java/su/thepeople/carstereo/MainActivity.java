@@ -28,11 +28,13 @@ import androidx.appcompat.app.AppCompatActivity;
  *      - Buttons are huge.
  *      - On-screen information is limited, and presented in large text.
  */
+@SuppressWarnings("ALL")
 public class MainActivity extends AppCompatActivity {
 
     // UI widgets that we need to update/control.
     private ToggleButton bandWidget;
     private ToggleButton albumWidget;
+    private ToggleButton yearWidget;
     private TextView songWidget;
     private ImageButton playPauseWidget;
     private ImageButton nextSongWidget;
@@ -49,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int SONG_CHOOSER = 3;
 
     // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
-    RecursionLock callbackLock = new RecursionLock();
+    private RecursionLock callbackLock = new RecursionLock();
 
     private static final String LOG_ID = "Main Activity";
 
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
                         mode.isAlbumLocked ? "" : " not"));
                 bandWidget.setChecked(mode.isBandLocked);
                 albumWidget.setChecked(mode.isAlbumLocked);
+                yearWidget.setChecked(mode.isYearLocked);
             });
             messageWidget.setVisibility(View.INVISIBLE);
         }
@@ -93,6 +96,13 @@ public class MainActivity extends AppCompatActivity {
             albumWidget.setText(currentSong.album == null ? "" : currentSong.album.name);
             albumWidget.setTextOn(currentSong.album == null ? "" : currentSong.album.name);
             albumWidget.setTextOff(currentSong.album == null ? "" : currentSong.album.name);
+            String year = "";
+            if (currentSong.album != null && currentSong.album.year != null) {
+                year = currentSong.album.year.toString();
+            }
+            yearWidget.setText(year);
+            yearWidget.setTextOn(year);
+            yearWidget.setTextOff(year);
         }
 
         @Override
@@ -172,6 +182,11 @@ public class MainActivity extends AppCompatActivity {
         albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
         albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
 
+        // Normal click locks/unlocks the current year.
+        // TODO: Add long-click to select other year or decade
+        yearWidget = findViewById(R.id.year);
+        yearWidget.setOnCheckedChangeListener((view, checked) -> onYearModeToggle());
+
         // Keep the song widget selected so that marquee scrolling will work.
         songWidget = findViewById(R.id.song);
         songWidget.setSelected(true);
@@ -214,21 +229,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void onBandModeToggle() {
+    private void onBandModeToggle() {
         // Use lock to make sure we only do work in response to user presses on the band button
         callbackLock.run(controller::toggleBandMode);
     }
 
-    public void onAlbumModeToggle() {
+    private void onAlbumModeToggle() {
         // Use lock to make sure we only do work in response to user presses on the album button
         callbackLock.run(controller::toggleAlbumMode);
     }
 
-    public void onPlayPauseToggle() {
+    private void onYearModeToggle() {
+        callbackLock.run(controller::toggleYearMode);
+    }
+
+    private void onPlayPauseToggle() {
         controller.togglePlayPause();
     }
 
-    public void onNextSongRequest() {
+    private void onNextSongRequest() {
         controller.skipAhead();
     }
 

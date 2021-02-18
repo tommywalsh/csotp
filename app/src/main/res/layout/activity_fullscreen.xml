@@ -58,14 +58,25 @@
         android:layout_weight="1" >
 
         <ToggleButton
-            android:id="@+id/album"
+            android:id="@+id/year"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:textAllCaps="false"
-            android:textOff=" "
+            android:textOff="1977"
             android:textOn=" "
             android:textSize="24sp" />
+
+        <ToggleButton
+            android:id="@+id/album"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="3"
+            android:textAllCaps="false"
+            android:textOff="Leave Home"
+            android:textOn=" "
+            android:textSize="24sp" />
+
     </TableRow>
 
     <TableRow

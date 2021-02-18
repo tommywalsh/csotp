@@ -24,6 +24,7 @@ public class SongChooser extends AppCompatActivity {
 
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
+        assert bundle != null;
 
         setContentView(R.layout.activity_song_chooser);
 

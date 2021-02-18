@@ -10,6 +10,8 @@ import su.thepeople.carstereo.data.Song;
 
 import java.io.File;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -22,10 +24,11 @@ import java.util.stream.Stream;
  */
 public class MusicScanner {
 
-    private static String LOG_TAG = "Music Scanner";
+    private static final String LOG_TAG = "Music Scanner";
+    private static final Pattern ALBUM_DIR_REGEX = Pattern.compile("^(\\d\\d\\d\\d) - (.*)$");
 
-    private Database database;
-    private Context context;
+    private final Database database;
+    private final Context context;
 
     public MusicScanner(Context context, Database database) {
         this.database = database;
@@ -43,6 +46,7 @@ public class MusicScanner {
 
     private Optional<File> findMcotpRoot() {
         return Stream.of(context.getExternalMediaDirs())
+                .filter(x -> x != null)
                 .flatMap(Utils::dirParentStream)
                 .map(this::getMcotpSubdir)
                 .filter(Optional::isPresent)
@@ -69,9 +73,13 @@ public class MusicScanner {
                 .forEach(f -> {
                     if (f.isDirectory()) {
                         Long albumID = null;  // Using null for dirs that are not real albums
-                        if (!f.getName().startsWith("[")) {
-                            Log.d(LOG_TAG, String.format("Found album %s", f.getName()));
-                            Album newAlbum = new Album(f.getName(), bandID);
+                        String dirName = f.getName();
+                        Matcher dirMatcher = ALBUM_DIR_REGEX.matcher(dirName);
+                        String albumName = dirMatcher.matches() ? dirMatcher.group(2) : dirName;
+                        Integer albumYear = dirMatcher.matches() ? Integer.parseInt(dirMatcher.group(1)) : null;
+                        if (!albumName.startsWith("[")) {
+                            Log.d(LOG_TAG, String.format("Found album %s", albumName));
+                            Album newAlbum = new Album(albumName, bandID, albumYear);
                             albumID = database.albumDAO().insert(newAlbum);
                         }
                         scanAlbumDir(bandID, albumID, f);

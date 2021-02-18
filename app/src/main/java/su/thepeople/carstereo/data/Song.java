@@ -19,9 +19,6 @@ public class Song {
     public String name;
 
     @NonNull
-    public String filename;
-
-    @NonNull
     public String fullPath;
 
     @NonNull
@@ -29,18 +26,17 @@ public class Song {
 
     public Long albumId;
 
-    private static Pattern filenameRegex = Pattern.compile("^(\\d*)( - )?(.*)\\.(\\w{3,4})$");
+    private static final Pattern filenameRegex = Pattern.compile("^(\\d*)( - )?(.*)\\.(\\w{3,4})$");
 
-    public Song(@NonNull String filename, @NonNull String fullPath, @NonNull Long bandId, Long albumId) {
-        Matcher matcher = filenameRegex.matcher(filename);
-        this.name = filename;
+    public Song(@NonNull String name, @NonNull String fullPath, @NonNull Long bandId, Long albumId) {
+        Matcher matcher = filenameRegex.matcher(name);
+        this.name = name;
         if (matcher.matches()) {
             String songName = matcher.group(3);
             if (songName != null) {
                 this.name = songName;
             }
         }
-        this.filename = filename;
         this.fullPath = fullPath;
         this.bandId = bandId;
         this.albumId = albumId;

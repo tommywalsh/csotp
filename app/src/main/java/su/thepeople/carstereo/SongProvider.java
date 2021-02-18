@@ -7,6 +7,7 @@ import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,7 +18,7 @@ import java.util.Optional;
 public abstract class SongProvider {
 
     private Database database;
-    protected static final String LOG_ID = "Song Provider";
+    private static final String LOG_ID = "Song Provider";
 
     SongProvider(Database database) {
         this.database = database;
@@ -42,6 +43,35 @@ public abstract class SongProvider {
         public List<Song> getNextBatch() {
             Log.d(LOG_ID, String.format("Getting next batch of %d random songs", BATCH_SIZE));
             return getDatabase().songDAO().getRandomBatch(BATCH_SIZE);
+        }
+    }
+
+    /**
+     * Specialization to randomly select songs from a particular time period.
+     */
+    public static class EraProvider extends SongProvider {
+        private static final int BATCH_SIZE = 10;
+        private final int firstYear;
+        private final int lastYear;
+
+        EraProvider(Database database, int firstYear, int lastYear) {
+            super(database);
+            this.firstYear = firstYear;
+            this.lastYear = lastYear;
+        }
+
+        public List<Song> getNextBatch() {
+            List<Song> batch = new ArrayList<>();
+            for (int i = 0; i < BATCH_SIZE; i++) {
+                Album album = getDatabase().albumDAO().getRandomForEra(firstYear, lastYear);
+                if (album != null) {
+                    List<Song> songs = getDatabase().songDAO().getRandomFromAlbum(album.uid);
+                    if (songs != null && !songs.isEmpty()) {
+                        batch.add(songs.get(0));
+                    }
+                }
+            }
+            return batch;
         }
     }
 

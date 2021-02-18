@@ -22,6 +22,9 @@ public interface AlbumDAO {
     @Query("SELECT * FROM Album ORDER BY random() LIMIT 1")
     Album getRandom();
 
+    @Query("SELECT * FROM Album WHERE year >= :firstYear AND year <= :lastYear ORDER BY random() LIMIT 1")
+    Album getRandomForEra(int firstYear, int lastYear);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Album album);
 }
