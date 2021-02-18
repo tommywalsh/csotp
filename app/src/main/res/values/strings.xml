@@ -6,4 +6,7 @@
     <string name="error">Error</string>
     <string name="double_shot">Double-Shot Weekend!</string>
     <string name="no_library">Cannot find music library!</string>
+    <string name="play">Play</string>
+    <string name="next">Next</string>
+    <string name="empty"></string>
 </resources>

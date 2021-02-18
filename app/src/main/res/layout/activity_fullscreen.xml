@@ -1,132 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mainTable"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0099cc"
+    android:orientation="vertical"
     tools:context="su.thepeople.carstereo.MainActivity">
 
-    <TableRow
+    <ToggleButton
+        android:id="@+id/band"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1" >
+        android:layout_weight="1"
+        android:text="@string/scanning_message"
+        android:textAllCaps="false"
+        android:textOff="@string/scanning_message"
+        android:textOn="@string/scanning_message"
+        android:textSize="24sp"
+        />
 
-        <ToggleButton
-            android:id="@+id/band"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="@string/scanning_message"
-            android:textAllCaps="false"
-            android:textOff="@string/scanning_message"
-            android:textOn="@string/scanning_message"
-            android:textSize="24sp" />
-    </TableRow>
-
-    <TableRow
+    <TextView
+        android:id="@+id/song"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1" >
+        android:layout_weight="1"
+        android:ellipsize="marquee"
+        android:gravity="center_horizontal|center_vertical"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:text="@string/please_wait"
+        android:textSize="30sp"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/song"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="marquee"
-                android:gravity="center_horizontal|center_vertical"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:scrollHorizontally="true"
-                android:singleLine="true"
-                android:text="@string/please_wait"
-                android:textSize="30sp" />
-        </LinearLayout>
-
-    </TableRow>
-
-    <TableRow
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1" >
+        android:layout_weight="1"
+        android:orientation="horizontal">
 
         <ToggleButton
             android:id="@+id/year"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_weight="3"
+            android:textAlignment="textEnd"
             android:textAllCaps="false"
-            android:textOff="1977"
-            android:textOn=" "
+            android:textOff="@string/empty"
+            android:textOn="@string/empty"
             android:textSize="24sp" />
 
         <ToggleButton
             android:id="@+id/album"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="3"
-            android:textAllCaps="false"
-            android:textOff="Leave Home"
-            android:textOn=" "
-            android:textSize="24sp" />
-
-    </TableRow>
-
-    <TableRow
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1">
-
-        <TextView
-            android:id="@+id/message"
-            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center_horizontal|center_vertical"
-            android:singleLine="true"
-            android:text="@string/double_shot"
-            android:textSize="30sp" />
+            android:textAlignment="viewStart"
+            android:textAllCaps="false"
+            android:textOff="@string/empty"
+            android:textOn="@string/empty"
+            android:textSize="24sp"
+            />
 
-    </TableRow>
+    </LinearLayout>
 
-        <TableRow
+    <TextView
+        android:id="@+id/message"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_horizontal|center_vertical"
+        android:singleLine="true"
+        android:text="@string/double_shot"
+        android:textSize="30sp"
+        />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/playPause"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="2">
+            android:layout_weight="1"
+            android:contentDescription="@string/play"
+            app:srcCompat="@drawable/ic_play_button" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="horizontal">
+        <Space
+            android:id="@+id/space"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            />
 
-                <ImageButton
-                    android:id="@+id/playPause"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    app:srcCompat="@drawable/ic_play_button" />
+        <ImageButton
+            android:id="@+id/next"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:contentDescription="@string/next"
+            app:srcCompat="@drawable/ic_next_button" />
+    </LinearLayout>
 
-                <Space
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1" />
-
-                <ImageButton
-                    android:id="@+id/next"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    app:srcCompat="@drawable/ic_next_button" />
-            </LinearLayout>
-
-        </TableRow>
-
-</TableLayout>
+</LinearLayout>

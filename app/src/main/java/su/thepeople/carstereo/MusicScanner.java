@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class MusicScanner {
 
     private static final String LOG_TAG = "Music Scanner";
-    private static final Pattern ALBUM_DIR_REGEX = Pattern.compile("^(\\d\\d\\d\\d) - (.*)$");
+    private static final Pattern ALBUM_DIR_REGEX = Pattern.compile("^(\\d\\d\\d\\d)[a-z]? - (.*)$");
 
     private final Database database;
     private final Context context;
