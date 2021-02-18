@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int ALBUM_CHOOSER = 1;
     private static final int BAND_CHOOSER = 2;
     private static final int SONG_CHOOSER = 3;
+    private static final int YEAR_CHOOSER = 4;
 
     // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
     private RecursionLock callbackLock = new RecursionLock();
@@ -130,6 +131,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
+        protected void onYearListResponse(YearListWrapper wrapper) {
+            Intent intent = new Intent(MainActivity.this, ItemChooser.YearChooser.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("YEARS", wrapper.years);
+            intent.putExtras(bundle);
+            Log.d(LOG_ID, "Starting year chooser");
+            MainActivity.this.startActivityForResult(intent, YEAR_CHOOSER);
+        }
+
+        @Override
         protected void onExceptionReport(Exception exception) {
             // Currently we only have one type of exception. This code will need improvement if/when that changes.
             Log.e(LOG_ID, "Reporting error to user", exception);
@@ -188,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
         // TODO: Add long-click to select other year or decade
         yearWidget = findViewById(R.id.year);
         yearWidget.setOnCheckedChangeListener((view, checked) -> onYearModeToggle());
+        yearWidget.setOnLongClickListener(view -> onYearChooserRequest());
 
         // Keep the song widget selected so that marquee scrolling will work.
         songWidget = findViewById(R.id.song);
@@ -271,6 +283,15 @@ public class MainActivity extends AppCompatActivity {
     /**
      * This follows the same strategy as onAlbumChooserRequest()
      */
+    private boolean onYearChooserRequest() {
+        Log.d(LOG_ID, "Requesting year list from controller");
+        controller.requestYearList();
+        return true;
+    }
+
+    /**
+     * This follows the same strategy as onAlbumChooserRequest()
+     */
     private boolean onBandChooserRequest() {
         Log.d(LOG_ID, "Requesting band list from controller");
         controller.requestBandList();
@@ -324,6 +345,9 @@ public class MainActivity extends AppCompatActivity {
                 } else if (itemId == SongChooser.FIRST_SONG) {
                     controller.restartCurrentAlbum();
                 }
+            } else if (requestCode == YEAR_CHOOSER) {
+                long itemId = result.getLongExtra("ITEM_ID", -1);
+                controller.lockSpecificYear((int)itemId);
             }
         }
     }

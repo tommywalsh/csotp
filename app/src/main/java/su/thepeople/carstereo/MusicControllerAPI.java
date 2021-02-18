@@ -19,8 +19,10 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_replenish = registerCallback(this::onReplenishPlaylist);
         cb_lockSpecificBand = registerCallback(this::onLockSpecificBand, Long.class);
         cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Long.class);
+        cb_lockSpecificYear = registerCallback(this::onLockSpecificYear, Integer.class);
         cb_requestBands = registerCallback(this::onRequestBandList);
         cb_requestAlbums = registerCallback(this::onRequestAlbumList);
+        cb_requestYears = registerCallback(this::onRequestYearList);
         cb_restartCurrentSong = registerCallback(this::onRestartCurrentSong);
         cb_restartCurrentAlbum = registerCallback(this::onRestartCurrentAlbum);
         cb_doubleShot = registerCallback(this::onToggleDoubleShotMode);
@@ -65,6 +67,9 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     // "Locks" on the band specified (regardless of which band is currently playing)
     public void lockSpecificBand(long bandId) { callInterThread(cb_lockSpecificBand, bandId); }
 
+    // "Locks" on the year specified (regardless of which year is currently playing)
+    public void lockSpecificYear(int year) { callInterThread(cb_lockSpecificYear, year);}
+
     // "Locks" on the album specified (regardless of which album is currently playing)
     public void lockSpecificAlbum(long albumId) { callInterThread(cb_lockSpecificAlbum, albumId); }
 
@@ -73,6 +78,9 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
 
     // Sends UI a list of all albums by the currently-playing band.
     public void requestAlbumList() { callInterThread(cb_requestAlbums); }
+
+    // Sends UI a list of the available years that may be locked on.
+    public void requestYearList() { callInterThread(cb_requestYears); }
 
     protected abstract void onTogglePlayPause();
     protected abstract void onSkipAhead();
@@ -83,8 +91,10 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onReplenishPlaylist();
     protected abstract void onLockSpecificBand(long bandId);
     protected abstract void onLockSpecificAlbum(long albumId);
+    protected abstract void onLockSpecificYear(int yearId);
     protected abstract void onRequestBandList();
     protected abstract void onRequestAlbumList();
+    protected abstract void onRequestYearList();
     protected abstract void onRestartCurrentSong();
     protected abstract void onRestartCurrentAlbum();
     protected abstract void onToggleDoubleShotMode();
@@ -98,8 +108,10 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     private int cb_replenish;
     private int cb_lockSpecificBand;
     private int cb_lockSpecificAlbum;
+    private int cb_lockSpecificYear;
     private int cb_requestBands;
     private int cb_requestAlbums;
+    private int cb_requestYears;
     private int cb_restartCurrentSong;
     private int cb_restartCurrentAlbum;
     private int cb_doubleShot;

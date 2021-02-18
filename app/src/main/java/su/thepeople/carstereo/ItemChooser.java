@@ -68,6 +68,18 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override protected boolean shouldShowScrollers() { return true; }
     }
 
+    /**
+     * A scrollable year picker
+     */
+    public static class YearChooser extends ItemChooser<Integer> {
+        @Override protected String getName(Integer y) { return y.toString(); }
+        @Override protected long getId(Integer y) { return y.longValue(); }
+        @Override protected ArrayList<Integer> unbundle(Bundle bundle) {
+            return (ArrayList<Integer>) bundle.getSerializable("YEARS");
+        }
+        @Override protected boolean shouldShowScrollers() { return true; }
+    }
+
     private static class ViewHolder extends RecyclerView.ViewHolder {
         Button view;
 

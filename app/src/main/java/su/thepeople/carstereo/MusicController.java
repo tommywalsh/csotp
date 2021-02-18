@@ -26,7 +26,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
     private MusicControllerAPI api;
 
     // An object that can send messages to the UI.
-    private MainActivityAPI mainActivity;
+    private final MainActivityAPI mainActivity;
 
     // Helper object which knows how to dump songs into the queued playlist.
     private SongProvider songProvider;
@@ -34,7 +34,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
     // Helper objects which actually knows how to play music.
     private MusicPlayer musicPlayer;
 
-    private Context context;
+    private final Context context;
     private Database database;
 
     public MusicController(MainActivityAPI mainActivity, Context context) {
@@ -97,7 +97,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
      */
     private class MusicControllerAPIImpl extends MusicControllerAPI {
 
-        private Looper looper;
+        private final Looper looper;
 
         protected MusicControllerAPIImpl(Looper looper) {
             this.looper = looper;
@@ -191,7 +191,6 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
                 songProvider = new SongProvider.EraProvider(database, year, year);
                 mode = PlayMode.YEAR;
                 MusicController.this.replenishPlaylist(false);
-                // TODO: add new locking mode
                 mainActivity.notifyPlayModeChange(PlayMode.YEAR);
             }
         }
@@ -230,7 +229,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             songProvider = new SongProvider.BandProvider(database, bandId);
             mode = PlayMode.BAND;
             MusicController.this.replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
-            mainActivity.notifyPlayModeChange(PlayMode.BAND);
+            mainActivity.notifyPlayModeChange(mode);
         }
 
         @Override
@@ -238,7 +237,15 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             songProvider = new SongProvider.AlbumProvider(database, albumId);
             mode = PlayMode.ALBUM;
             MusicController.this.replenishPlaylist(true);
-            mainActivity.notifyPlayModeChange(PlayMode.ALBUM);
+            mainActivity.notifyPlayModeChange(mode);
+        }
+
+        @Override
+        protected void onLockSpecificYear(int yearId) {
+            songProvider = new SongProvider.EraProvider(database, yearId, yearId);
+            mode = PlayMode.YEAR;
+            MusicController.this.replenishPlaylist(true);
+            mainActivity.notifyPlayModeChange(mode);
         }
 
         @Override
@@ -251,6 +258,12 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             long bandId = musicPlayer.getCurrentSong().band.uid;
             List<Album> albums = database.albumDAO().getAllForBand(bandId);
             mainActivity.fulfillAlbumListRequest(albums);
+        }
+
+        @Override
+        protected void onRequestYearList() {
+            List<Integer> years = database.albumDAO().getYears();
+            mainActivity.fulfillYearListRequest(years);
         }
 
         @Override

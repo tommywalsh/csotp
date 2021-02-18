@@ -39,16 +39,21 @@ public abstract class MainActivityAPI extends InterThreadAPI {
         callInterThread(cb_albumList, new AlbumListWrapper(albums));
     }
 
+    public void fulfillYearListRequest(List<Integer> albums) {
+        callInterThread(cb_yearList, new YearListWrapper(albums));
+    }
+
     public void reportException(Exception e) {
         callInterThread(cb_exception, e);
     }
 
-    private int cb_playMode;
-    private int cb_playState;
-    private int cb_currentSong;
-    private int cb_bandList;
-    private int cb_albumList;
-    private int cb_exception;
+    private final int cb_playMode;
+    private final int cb_playState;
+    private final int cb_currentSong;
+    private final int cb_bandList;
+    private final int cb_albumList;
+    private final int cb_yearList;
+    private final int cb_exception;
 
     protected MainActivityAPI() {
         cb_playMode = registerCallback(this::onPlayModeChange, PlayMode.class);
@@ -56,6 +61,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
         cb_currentSong = registerCallback(this::onCurrentSongChange, SongInfo.class);
         cb_bandList = registerCallback(this::onBandListResponse, BandListWrapper.class);
         cb_albumList = registerCallback(this::onAlbumListResponse, AlbumListWrapper.class);
+        cb_yearList = registerCallback(this::onYearListResponse, YearListWrapper.class);
         cb_exception = registerCallback(this::onExceptionReport, Exception.class);
     }
 
@@ -79,6 +85,14 @@ public abstract class MainActivityAPI extends InterThreadAPI {
         }
     }
 
+    protected static class YearListWrapper implements Serializable {
+        ArrayList<Integer> years;
+
+        YearListWrapper(List<Integer> list) {
+            years = new ArrayList<>(list);
+        }
+    }
+
     protected abstract void onPlayModeChange(PlayMode newPlayMode);
 
     protected abstract void onPlayStateChange(boolean isPlaying);
@@ -88,6 +102,8 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     protected abstract void onBandListResponse(BandListWrapper bands);
 
     protected abstract void onAlbumListResponse(AlbumListWrapper albums);
+
+    protected abstract void onYearListResponse(YearListWrapper years);
 
     protected abstract void onExceptionReport(Exception exception);
 }
