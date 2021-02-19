@@ -40,7 +40,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     private static final String OUTPUT_KEY = "OUTPUT_ITEM";
 
     @SuppressWarnings("rawtypes")
-    protected static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
+    private static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
         return new ActivityIODefinition<>(chooserClass, INPUT_KEY, ArrayList.class, OUTPUT_KEY, baseClass);
     }
     /**
@@ -82,7 +82,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
-        Button view;
+        protected final Button view;
 
         ViewHolder(Button view) {
             super(view);

@@ -19,12 +19,12 @@ public class Song {
     public String name;
 
     @NonNull
-    public String fullPath;
+    public final String fullPath;
 
     @NonNull
-    public Long bandId;
+    public final Long bandId;
 
-    public Long albumId;
+    public final Long albumId;
 
     private static final Pattern filenameRegex = Pattern.compile("^(\\d*)( - )?(.*)\\.(\\w{3,4})$");
 

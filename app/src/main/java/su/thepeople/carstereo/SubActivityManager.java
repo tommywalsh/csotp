@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 public class SubActivityManager {
 
     /**
-     * This class is used to describle the IO characteristics of a subactivity. Each subactivity should supply this
+     * This class is used to describe the IO characteristics of a subactivity. Each subactivity should supply this
      * data for itself.
      */
     public static class ActivityIODefinition <I extends Serializable, O extends Serializable> {
@@ -33,20 +33,20 @@ public class SubActivityManager {
             this.outputTag = outputTag;
             this.outputClass = outputClass;
         }
-        String inputTag;
-        Class<? extends Serializable> inputClass;
-        String outputTag;
-        Class<? extends Serializable> outputClass;
-        Class<? extends Activity> activityClass;
+        protected final String inputTag;
+        protected final Class<? extends Serializable> inputClass;
+        protected final String outputTag;
+        protected final Class<? extends Serializable> outputClass;
+        protected final Class<? extends Activity> activityClass;
     }
 
     private final List<SubActivityDefinition<? extends Serializable, ? extends Serializable>> subActivities = new ArrayList<>();
 
-    public static class SubActivityDefinition<I extends Serializable, O extends Serializable> {
-        public ActivityIODefinition<I, O> ioDef;
-        public Consumer<O> outputProcessor;
+    protected static class SubActivityDefinition<I extends Serializable, O extends Serializable> {
+        protected final ActivityIODefinition<I, O> ioDef;
+        protected final Consumer<O> outputProcessor;
 
-        public SubActivityDefinition(ActivityIODefinition<I,O> ioDef, Consumer<O> outputProcessor) {
+        protected SubActivityDefinition(ActivityIODefinition<I,O> ioDef, Consumer<O> outputProcessor) {
             this.ioDef = ioDef;
             this.outputProcessor = outputProcessor;
         }

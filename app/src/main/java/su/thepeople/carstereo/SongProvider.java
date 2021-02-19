@@ -7,7 +7,6 @@ import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,7 +16,7 @@ import java.util.Optional;
  */
 public abstract class SongProvider {
 
-    private Database database;
+    private final Database database;
     private static final String LOG_ID = "Song Provider";
 
     SongProvider(Database database) {
@@ -137,7 +136,7 @@ public abstract class SongProvider {
      * Specialization for "band mode". Each song is randomly selected from all of the band's songs.
      */
     public static class BandProvider extends SongProvider {
-        private long bandId;
+        private final long bandId;
 
         BandProvider(Database database, long bandId) {
             super(database);
@@ -155,7 +154,7 @@ public abstract class SongProvider {
      * song, and then "wrapping around" to the beginning of the album.
      */
     public static class AlbumProvider extends SongProvider {
-        private long albumId;
+        private final long albumId;
         // This will be set only for the first batch.
         private Optional<Long> previousSongId;
 

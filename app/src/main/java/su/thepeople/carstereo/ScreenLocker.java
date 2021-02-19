@@ -22,7 +22,7 @@ import android.os.PowerManager;
  */
 class ScreenLocker {
 
-    private PowerManager.WakeLock wakeLock;
+    private final PowerManager.WakeLock wakeLock;
     private boolean isLocked = false;
 
     @SuppressWarnings("deprecation")

@@ -70,7 +70,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     }
 
     protected static class BandListWrapper implements Serializable {
-        ArrayList<Band> bands;
+        protected final ArrayList<Band> bands;
 
         BandListWrapper(List<Band> list) {
             bands = new ArrayList<>(list);
@@ -78,7 +78,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     }
 
     protected static class AlbumListWrapper implements Serializable {
-        ArrayList<Album> albums;
+        protected final ArrayList<Album> albums;
 
         AlbumListWrapper(List<Album> list) {
             albums = new ArrayList<>(list);
@@ -86,7 +86,7 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     }
 
     protected static class YearListWrapper implements Serializable {
-        ArrayList<Integer> years;
+        protected final ArrayList<Integer> years;
 
         YearListWrapper(List<Integer> list) {
             years = new ArrayList<>(list);

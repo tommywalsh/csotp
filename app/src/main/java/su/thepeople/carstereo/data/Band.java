@@ -16,7 +16,7 @@ public class Band implements Serializable {
     public long uid;
 
     @NonNull
-    public String name;
+    public final String name;
 
     public Band(@NonNull String name) {
         this.name = name;

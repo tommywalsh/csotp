@@ -88,7 +88,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:contentDescription="@string/play"
-            app:srcCompat="@drawable/ic_play_button" />
+            app:srcCompat="@drawable/ic_play_button"
+            tools:ignore="NestedWeights" />
 
         <Space
             android:id="@+id/space"

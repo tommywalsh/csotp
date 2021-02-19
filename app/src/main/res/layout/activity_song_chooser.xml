@@ -24,7 +24,8 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            app:srcCompat="@drawable/ic_restart_button" />
+            app:srcCompat="@drawable/ic_restart_button"
+            android:contentDescription="@string/first_song" />
 
         <Space
             android:layout_width="wrap_content"
@@ -36,7 +37,8 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            app:srcCompat="@drawable/ic_prev_button" />
+            app:srcCompat="@drawable/ic_prev_button"
+            android:contentDescription="@string/restart_this_song" />
 
         <Space
             android:layout_width="wrap_content"
@@ -49,7 +51,8 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            app:srcCompat="@drawable/ic_next_button" />
+            app:srcCompat="@drawable/ic_next_button"
+            android:contentDescription="@string/next_song" />
     </TableRow>
 
     <TableRow

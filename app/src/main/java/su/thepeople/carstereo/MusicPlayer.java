@@ -16,7 +16,7 @@ import java.util.List;
 class MusicPlayer {
 
     // The "real" music player that we are wrapping
-    private MediaPlayer androidPlayer;
+    private final MediaPlayer androidPlayer;
 
     /**
      * The Android player will transition from playing to stopped and back (and other states too!) in the course of
@@ -25,10 +25,10 @@ class MusicPlayer {
     private boolean shouldBePlaying = false;
 
     // Object that will send update messages to the UI.
-    private MainActivityAPI mainActivity;
+    private final MainActivityAPI mainActivity;
 
     // Object that will send requests to the controller.
-    private MusicControllerAPI controller;
+    private final MusicControllerAPI controller;
 
     // Which song is currently playing (or if we're paused, which song will play when we unpause)?
     private SongInfo currentSong = null;

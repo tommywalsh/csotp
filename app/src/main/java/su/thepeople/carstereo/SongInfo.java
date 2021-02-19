@@ -11,9 +11,9 @@ import su.thepeople.carstereo.data.Song;
  * Convenience class for representing all information about a song.
  */
 public class SongInfo {
-    @NonNull public Band band;
-    @Nullable public Album album;
-    @NonNull public Song song;
+    @NonNull public final Band band;
+    @Nullable public final Album album;
+    @NonNull public final Song song;
 
     SongInfo(@NonNull Band band, @NonNull Song song, @Nullable Album album) {
         this.band = band;

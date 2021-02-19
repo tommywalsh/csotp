@@ -23,9 +23,6 @@ public interface SongDAO {
     @Query("SELECT * FROM Song WHERE albumId = :albumId ORDER BY fullPath")
     List<Song> getAllForAlbum(@NonNull Long albumId);
 
-    @Query("SELECT * FROM Song WHERE albumId = :albumId ORDER BY random()")
-    List<Song> getRandomFromAlbum(@NonNull Long albumId);
-
     @Query("SELECT * FROM Song ORDER BY random() LIMIT :batchSize")
     List<Song> getRandomBatch(int batchSize);
 

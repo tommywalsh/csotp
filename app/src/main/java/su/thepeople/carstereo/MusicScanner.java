@@ -9,6 +9,7 @@ import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
  *
  * This class assumes that there will be a directory called "mcotp", in which the entire music library is stored. This
  * mcotp directory should be in the root level of an SD card. Failing that, it might work to put the directory as a
- * sibling to whereever Android will put this application's media directories, or as a sibling to one of the media
+ * sibling to wherever Android will put this application's media directories, or as a sibling to one of the media
  * directories' parents.
  */
 public class MusicScanner {
@@ -45,8 +46,9 @@ public class MusicScanner {
     }
 
     private Optional<File> findMcotpRoot() {
+        //noinspection deprecation
         return Stream.of(context.getExternalMediaDirs())
-                .filter(x -> x != null)
+                .filter(Objects::nonNull)
                 .flatMap(Utils::dirParentStream)
                 .map(this::getMcotpSubdir)
                 .filter(Optional::isPresent)
@@ -76,7 +78,8 @@ public class MusicScanner {
                         String dirName = f.getName();
                         Matcher dirMatcher = ALBUM_DIR_REGEX.matcher(dirName);
                         String albumName = dirMatcher.matches() ? dirMatcher.group(2) : dirName;
-                        Integer albumYear = dirMatcher.matches() ? Integer.parseInt(dirMatcher.group(1)) : null;
+                        assert albumName != null;
+                        @SuppressWarnings("ConstantConditions") Integer albumYear = dirMatcher.matches() ? Integer.parseInt(dirMatcher.group(1)) : null;
                         if (!albumName.startsWith("[")) {
                             Log.d(LOG_TAG, String.format("Found album %s", albumName));
                             Album newAlbum = new Album(albumName, bandID, albumYear);

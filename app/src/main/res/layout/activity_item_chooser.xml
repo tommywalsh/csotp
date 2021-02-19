@@ -4,7 +4,8 @@
     android:id="@+id/itemPickerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ItemChooser">
+    tools:context=".ItemChooser"
+    tools:ignore="MergeRootFrame">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -66,7 +67,8 @@
                 android:id="@+id/course10"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                tools:ignore="NestedWeights" />
 
             <Button
                 android:id="@+id/course30"

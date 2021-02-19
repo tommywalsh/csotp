@@ -17,11 +17,11 @@ public class Album implements Serializable {
     public long uid;
 
     @NonNull
-    public String name;
+    public final String name;
 
-    public Integer year;
+    public final Integer year;
 
-    public long bandId;
+    public final long bandId;
 
     public Album(@NonNull String name, long bandId, @Nullable Integer year) {
         this.name = name;

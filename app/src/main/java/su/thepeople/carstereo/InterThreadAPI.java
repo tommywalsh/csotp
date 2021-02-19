@@ -98,6 +98,7 @@ public abstract class InterThreadAPI {
     /*
      * This method will be called by the Android system, on the target thread, when a new message is received.
      */
+    @SuppressWarnings("SameReturnValue")
     private boolean handleMessage(Message message) {
         // Figure out what we need to do in response to this message.
         int callbackId = message.arg1;
