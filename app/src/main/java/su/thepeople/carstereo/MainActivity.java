@@ -48,15 +48,17 @@ public class MainActivity extends AppCompatActivity {
     private ScreenLocker screenLocker;
 
     // Activity IDs for the sub-activities that we expect to supply us with a result.
-    private static final int ALBUM_CHOOSER = 1;
-    private static final int BAND_CHOOSER = 2;
-    private static final int SONG_CHOOSER = 3;
-    private static final int YEAR_CHOOSER = 4;
+    private int albumPickerId;
+    private int bandPickerId;
+    private int yearPickerId;
+    private int songChooserId;
 
     // Some of our UI widgets are interdependent. This helper lets us avoid callbacks triggering each other.
     private RecursionLock callbackLock = new RecursionLock();
 
     private static final String LOG_ID = "Main Activity";
+
+    private SubActivityManager subActivityManager = new SubActivityManager(this);
 
     /**
      * This helper class defines what happens when other parts of the app send us a message.
@@ -110,34 +112,17 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onBandListResponse(BandListWrapper wrapper) {
-            // The only reason we would have asked for a band list is to open the band chooser.
-            Intent intent = new Intent(MainActivity.this, ItemChooser.BandChooser.class);
-            Bundle bundle = new Bundle();
-            bundle.putSerializable("BANDS", wrapper.bands);
-            intent.putExtras(bundle);
-            Log.d(LOG_ID, "Starting band chooser");
-            MainActivity.this.startActivityForResult(intent, BAND_CHOOSER);
+            subActivityManager.runSubActivity(bandPickerId, wrapper.bands);
         }
 
         @Override
         protected void onAlbumListResponse(AlbumListWrapper wrapper) {
-            // The only reason we would have asked for an album list is to open the album chooser.
-            Intent intent = new Intent(MainActivity.this, ItemChooser.AlbumChooser.class);
-            Bundle bundle = new Bundle();
-            bundle.putSerializable("ALBUMS", wrapper.albums);
-            intent.putExtras(bundle);
-            Log.d(LOG_ID, "Starting album chooser");
-            MainActivity.this.startActivityForResult(intent, ALBUM_CHOOSER);
+            subActivityManager.runSubActivity(albumPickerId, wrapper.albums);
         }
 
         @Override
         protected void onYearListResponse(YearListWrapper wrapper) {
-            Intent intent = new Intent(MainActivity.this, ItemChooser.YearChooser.class);
-            Bundle bundle = new Bundle();
-            bundle.putSerializable("YEARS", wrapper.years);
-            intent.putExtras(bundle);
-            Log.d(LOG_ID, "Starting year chooser");
-            MainActivity.this.startActivityForResult(intent, YEAR_CHOOSER);
+            subActivityManager.runSubActivity(yearPickerId, wrapper.years);
         }
 
         @Override
@@ -174,13 +159,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     @SuppressLint("InlinedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.d(LOG_ID, "Main Activity created");
+        albumPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.AlbumChooser.getIODefinition(), a -> controller.lockSpecificAlbum(a.uid));
+        bandPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.BandChooser.getIODefinition(), b -> controller.lockSpecificBand(b.uid));
+        yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), y -> controller.lockSpecificYear(y));
+        songChooserId = subActivityManager.addSubActivityDefinition(SongChooser.getIODefinition(), r -> onSongChooserResponse(r));
 
         // Set up the main screen
         setContentView(R.layout.activity_fullscreen);
@@ -196,7 +183,6 @@ public class MainActivity extends AppCompatActivity {
         albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
 
         // Normal click locks/unlocks the current year.
-        // TODO: Add long-click to select other year or decade
         yearWidget = findViewById(R.id.year);
         yearWidget.setOnCheckedChangeListener((view, checked) -> onYearModeToggle());
         yearWidget.setOnLongClickListener(view -> onYearChooserRequest());
@@ -226,6 +212,9 @@ public class MainActivity extends AppCompatActivity {
         screenLocker = new ScreenLocker(this);
         musicThread = new MusicController(new MainActivityAPIImpl(), getApplicationContext());
         controller = musicThread.startThread();
+
+        Log.d(LOG_ID, "Main Activity created");
+
     }
 
     @Override
@@ -304,14 +293,7 @@ public class MainActivity extends AppCompatActivity {
      * song".
      */
     private boolean onSongChooserRequest() {
-
-        Intent intent = new Intent(MainActivity.this, SongChooser.class);
-        Bundle bundle = new Bundle();
-        bundle.putBoolean("SHOW_FIRST_SONG", true);
-        intent.putExtras(bundle);
-
-        Log.d(LOG_ID, "Starting song chooser");
-        MainActivity.this.startActivityForResult(intent, SONG_CHOOSER);
+        subActivityManager.runSubActivity(songChooserId, Boolean.TRUE);
         return true;
     }
 
@@ -324,31 +306,22 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    private void onSongChooserResponse(int songChooserCode) {
+        if (songChooserCode == SongChooser.NEXT_SONG) {
+            controller.skipAhead();
+        } else if (songChooserCode == SongChooser.THIS_SONG) {
+            controller.restartCurrentSong();
+        } else if (songChooserCode == SongChooser.FIRST_SONG) {
+            controller.restartCurrentAlbum();
+        }
+    }
     /**
      * This method is called when the user has completed a sub-activity (e.g. has chosen a band to lock on)
      */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == ALBUM_CHOOSER) {
-                long itemId = result.getLongExtra("ITEM_ID", -1);
-                controller.lockSpecificAlbum(itemId);
-            } else if (requestCode == BAND_CHOOSER) {
-                long itemId = result.getLongExtra("ITEM_ID", -1);
-                controller.lockSpecificBand(itemId);
-            } else if (requestCode == SONG_CHOOSER) {
-                int itemId = result.getIntExtra("SONG_SPECIFIER", -1);
-                if (itemId == SongChooser.NEXT_SONG) {
-                    controller.skipAhead();
-                } else if (itemId == SongChooser.THIS_SONG) {
-                    controller.restartCurrentSong();
-                } else if (itemId == SongChooser.FIRST_SONG) {
-                    controller.restartCurrentAlbum();
-                }
-            } else if (requestCode == YEAR_CHOOSER) {
-                long itemId = result.getLongExtra("ITEM_ID", -1);
-                controller.lockSpecificYear((int)itemId);
-            }
+            subActivityManager.processSubActivityResult(requestCode, result);
         }
     }
 }

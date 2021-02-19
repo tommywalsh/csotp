@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import su.thepeople.carstereo.SubActivityManager.ActivityIODefinition;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 
@@ -26,58 +27,58 @@ import su.thepeople.carstereo.data.Band;
  * This is an abstract superclass that defines most of the behavior of a scrollable item picker. Internal classes
  * specialize the behavior for different types.
  *
- * The ItemChooser is sent a list of objects (the object must have an "id" and a "name", and be serializable). If the
- * user selects one of them, then the ID of that item is sent back as a response. If not, then no response is sent.
+ * Speaking generally, the ItemChooser is sent a list of objects as input. These objects are shown in a list, and the
+ * user may choose one. If they do, then the chosen item is send back as output.
+ *
+ * Each concrete implementation only needs to to minor tweaking
  */
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
-    protected abstract String getName(T obj);
-    protected abstract long getId(T obj);
-    protected abstract ArrayList<T> unbundle(Bundle bundle);
-    protected abstract boolean shouldShowScrollers();
+    protected abstract String getDisplayString(T obj);
 
+    private static final String INPUT_KEY = "INPUT_LIST";
+    private static final String OUTPUT_KEY = "OUTPUT_ITEM";
+
+    @SuppressWarnings("rawtypes")
+    protected static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
+        return new ActivityIODefinition<>(chooserClass, INPUT_KEY, ArrayList.class, OUTPUT_KEY, baseClass);
+    }
     /**
      * A scrollable album picker
      */
     public static class AlbumChooser extends ItemChooser<Album> {
-        @Override protected String getName(Album a) {
+        @Override protected String getDisplayString(Album a) {
             return a.name;
         }
-        @Override protected long getId(Album a) {
-            return a.uid;
+
+        @SuppressWarnings("rawtypes")
+        public static ActivityIODefinition<ArrayList, Album> getIODefinition() {
+            return ItemChooser.makeIODefinition(AlbumChooser.class, Album.class);
         }
-        @Override @SuppressWarnings("unchecked") protected ArrayList<Album> unbundle(Bundle bundle) {
-            return (ArrayList<Album>) bundle.getSerializable("ALBUMS");
-        }
-        @Override protected boolean shouldShowScrollers() { return false; }
     }
 
     /**
      * A scrollable band picker
      */
     public static class BandChooser extends ItemChooser<Band> {
-        @Override protected String getName(Band b) {
+        @Override protected String getDisplayString(Band b) {
             return b.name;
         }
-        @Override protected long getId(Band b) {
-            return b.uid;
+        @SuppressWarnings("rawtypes")
+        public static ActivityIODefinition<ArrayList, Band> getIODefinition() {
+            return ItemChooser.makeIODefinition(BandChooser.class, Band.class);
         }
-        @Override @SuppressWarnings("unchecked") protected ArrayList<Band> unbundle(Bundle bundle) {
-            return (ArrayList<Band>) bundle.getSerializable("BANDS");
-        }
-        @Override protected boolean shouldShowScrollers() { return true; }
     }
 
     /**
      * A scrollable year picker
      */
     public static class YearChooser extends ItemChooser<Integer> {
-        @Override protected String getName(Integer y) { return y.toString(); }
-        @Override protected long getId(Integer y) { return y.longValue(); }
-        @Override protected ArrayList<Integer> unbundle(Bundle bundle) {
-            return (ArrayList<Integer>) bundle.getSerializable("YEARS");
+        @Override protected String getDisplayString(Integer y) { return y.toString(); }
+        @SuppressWarnings("rawtypes")
+        public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
+            return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
         }
-        @Override protected boolean shouldShowScrollers() { return true; }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
@@ -90,7 +91,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     }
 
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
-        private List<T> items;
+        private final List<T> items;
 
         Adapter(List<T> items) {
             this.items = items;
@@ -105,9 +106,9 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
 
         private void onItemSelect(View view) {
             Integer listPosition = (Integer) view.getTag();
-            long id = getId(items.get(listPosition));
+            T item = items.get(listPosition);
             Intent intent = new Intent();
-            intent.putExtra("ITEM_ID", id);
+            intent.putExtra(OUTPUT_KEY, item);
             setResult(Activity.RESULT_OK, intent);
             finish();
         }
@@ -115,7 +116,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             holder.view.setTag(position);
-            holder.view.setText(getName(items.get(position)));
+            holder.view.setText(getDisplayString(items.get(position)));
         }
 
         @Override
@@ -198,7 +199,10 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
 
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
-        ArrayList<T> items = unbundle(bundle);
+        assert bundle != null;
+        Serializable untypedInput = bundle.getSerializable(INPUT_KEY);
+        assert untypedInput != null;
+        @SuppressWarnings("unchecked") ArrayList<T> items = (ArrayList<T>) untypedInput;
 
         listView = findViewById(R.id.itemRecycler);
         listView.setHasFixedSize(true);
@@ -206,10 +210,10 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         listView.setLayoutManager(new LinearLayoutManager(this));
         listView.setAdapter(new Adapter(items));
 
-        findViewById(R.id.courseScroller).setVisibility(shouldShowScrollers() ? View.VISIBLE : View.INVISIBLE);
-        findViewById(R.id.fineScroller).setVisibility(shouldShowScrollers() ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.courseScroller).setVisibility(items.size() > 8 ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.fineScroller).setVisibility(items.size() >  35 ? View.VISIBLE : View.INVISIBLE);
 
-        if (shouldShowScrollers()) {
+        if (items.size() > 8) {
             listLength = items.size();
 
             listView.setOnScrollChangeListener((v, x, y, x1, y1) -> updateScrollers());

@@ -45,4 +45,8 @@ public class SongChooser extends AppCompatActivity {
         setResult(Activity.RESULT_OK, intent);
         finish();
     }
+
+    public static SubActivityManager.ActivityIODefinition<Boolean, Integer> getIODefinition() {
+        return new SubActivityManager.ActivityIODefinition<>(SongChooser.class, "SHOW_FIRST_SONG", Boolean.class, "SONG_SPECIFIER", Integer.class);
+    }
 }
