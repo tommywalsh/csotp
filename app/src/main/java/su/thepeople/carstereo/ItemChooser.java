@@ -73,11 +73,11 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     /**
      * A scrollable year picker
      */
-    public static class YearChooser extends ItemChooser<Integer> {
-        @Override protected String getDisplayString(Integer y) { return y.toString(); }
+    public static class YearChooser extends ItemChooser<MainActivity.Era> {
+        @Override protected String getDisplayString(MainActivity.Era era) { return era.label; }
         @SuppressWarnings("rawtypes")
-        public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
-            return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
+        public static ActivityIODefinition<ArrayList, MainActivity.Era> getIODefinition() {
+            return ItemChooser.makeIODefinition(YearChooser.class, MainActivity.Era.class);
         }
     }
 

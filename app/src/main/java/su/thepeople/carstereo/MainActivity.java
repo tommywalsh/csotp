@@ -16,6 +16,9 @@ import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+
 import su.thepeople.carstereo.MusicController.PlayMode;
 
 /**
@@ -59,6 +62,17 @@ public class MainActivity extends AppCompatActivity {
     private static final String LOG_ID = "Main Activity";
 
     private SubActivityManager subActivityManager = new SubActivityManager(this);
+
+    public static class Era implements Serializable {
+        public int startYear;
+        public int endYear;
+        public String label;
+        Era(String label, int startYear, int endYear) {
+            this.startYear = startYear;
+            this.endYear = endYear;
+            this.label = label;
+        }
+    }
 
     /**
      * This helper class defines what happens when other parts of the app send us a message.
@@ -122,7 +136,18 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onYearListResponse(YearListWrapper wrapper) {
-            subActivityManager.runSubActivity(yearPickerId, wrapper.years);
+            ArrayList<Era> eras = new ArrayList<>();
+            Integer lastDecade = null;
+            for(int year : wrapper.years) {
+                Integer thisDecade = (year/10) * 10;
+                if (lastDecade == null || !lastDecade.equals(thisDecade)) {
+                    String label = String.format("%ds", thisDecade);
+                    eras.add(new Era(label, thisDecade, thisDecade + 9));
+                    lastDecade = thisDecade;
+                }
+                eras.add(new Era(Integer.toString(year), year, year));
+            }
+            subActivityManager.runSubActivity(yearPickerId, eras);
         }
 
         @Override
@@ -166,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
 
         albumPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.AlbumChooser.getIODefinition(), a -> controller.lockSpecificAlbum(a.uid));
         bandPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.BandChooser.getIODefinition(), b -> controller.lockSpecificBand(b.uid));
-        yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), y -> controller.lockSpecificYear(y));
+        yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), era -> controller.lockSpecificEra(era));
         songChooserId = subActivityManager.addSubActivityDefinition(SongChooser.getIODefinition(), r -> onSongChooserResponse(r));
 
         // Set up the main screen

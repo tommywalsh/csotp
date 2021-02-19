@@ -241,8 +241,8 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
-        protected void onLockSpecificYear(int yearId) {
-            songProvider = new SongProvider.EraProvider(database, yearId, yearId);
+        protected void onLockSpecificEra(MainActivity.Era era) {
+            songProvider = new SongProvider.EraProvider(database, era.startYear, era.endYear);
             mode = PlayMode.YEAR;
             MusicController.this.replenishPlaylist(true);
             mainActivity.notifyPlayModeChange(mode);
