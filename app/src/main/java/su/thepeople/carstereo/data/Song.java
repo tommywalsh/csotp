@@ -1,11 +1,9 @@
 package su.thepeople.carstereo.data;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Simple POJO type representing a Song, as backed by an on-disk file.
@@ -26,19 +24,13 @@ public class Song {
 
     public final Long albumId;
 
-    private static final Pattern filenameRegex = Pattern.compile("^(\\d*)( - )?(.*)\\.(\\w{3,4})$");
+    public final Integer year;
 
-    public Song(@NonNull String name, @NonNull String fullPath, @NonNull Long bandId, Long albumId) {
-        Matcher matcher = filenameRegex.matcher(name);
+    public Song(@NonNull String name, @NonNull String fullPath, @NonNull Long bandId, @Nullable Long albumId, @Nullable Integer year) {
         this.name = name;
-        if (matcher.matches()) {
-            String songName = matcher.group(3);
-            if (songName != null) {
-                this.name = songName;
-            }
-        }
         this.fullPath = fullPath;
         this.bandId = bandId;
         this.albumId = albumId;
+        this.year = year;
     }
 }

@@ -116,8 +116,8 @@ public class MainActivity extends AppCompatActivity {
             albumWidget.setTextOn(currentSong.album == null ? "" : currentSong.album.name);
             albumWidget.setTextOff(currentSong.album == null ? "" : currentSong.album.name);
             String year = "";
-            if (currentSong.album != null && currentSong.album.year != null) {
-                year = currentSong.album.year.toString();
+            if (currentSong.song.year != null) {
+                year = currentSong.song.year.toString();
             }
             yearWidget.setText(year);
             yearWidget.setTextOn(year);

@@ -27,6 +27,8 @@ public class MusicScanner {
 
     private static final String LOG_TAG = "Music Scanner";
     private static final Pattern ALBUM_DIR_REGEX = Pattern.compile("^(\\d\\d\\d\\d)[a-z]? - (.*)$");
+    private static final Pattern LOOSE_SONG_FILE_REGEX = Pattern.compile("^((\\d\\d\\d\\d) - )?(.*)\\.(\\w{3,4})$");
+    private static final Pattern ALBUM_SONG_FILE_REGEX = Pattern.compile("^(\\d*)( - )?(.*)\\.(\\w{3,4})$");
 
     private final Database database;
     private final Context context;
@@ -46,7 +48,6 @@ public class MusicScanner {
     }
 
     private Optional<File> findMcotpRoot() {
-        //noinspection deprecation
         return Stream.of(context.getExternalMediaDirs())
                 .filter(Objects::nonNull)
                 .flatMap(Utils::dirParentStream)
@@ -85,22 +86,41 @@ public class MusicScanner {
                             Album newAlbum = new Album(albumName, bandID, albumYear);
                             albumID = database.albumDAO().insert(newAlbum);
                         }
-                        scanAlbumDir(bandID, albumID, f);
+                        scanAlbumDir(bandID, albumID, albumYear, f);
                     } else if (f.isFile()) {
-                        Log.d(LOG_TAG, String.format("Found loose song %s", f.getName()));
-                        Song newSong = new Song(f.getName(), f.getAbsolutePath(), bandID, null);
+                        String fileName = f.getName();
+                        Log.d(LOG_TAG, String.format("Found loose song %s", fileName));
+                        Matcher songMatcher = LOOSE_SONG_FILE_REGEX.matcher(fileName);
+                        if (!songMatcher.matches()) {
+                            Log.w("Loose song does not match format: %s", fileName);
+                        }
+                        String songName = songMatcher.matches() ? songMatcher.group(3) : fileName;
+                        Integer songYear = songMatcher.matches() ? getOptionalIntegerFromString(songMatcher.group(2)) : null;
+                        Song newSong = new Song(songName, f.getAbsolutePath(), bandID, null, songYear);
                         database.songDAO().insert(newSong);
                     }
                 });
     }
+    private static Integer getOptionalIntegerFromString(String stringToParse) {
+        if (stringToParse == null) {
+            return null;
+        }
+        return Integer.parseInt(stringToParse);
+    }
 
-    private void scanAlbumDir(long bandID, Long albumID, File albumDir) {
+    private void scanAlbumDir(long bandID, Long albumID, Integer albumYear, File albumDir) {
         Utils.dirContentsStream(albumDir)
                 .filter(File::isFile)
                 .filter(f -> !f.getName().startsWith("["))
                 .forEach(songFile -> {
-                    Log.d(LOG_TAG, String.format("Found album song %s", songFile.getName()));
-                    Song newSong = new Song(songFile.getName(), songFile.getAbsolutePath(), bandID, albumID);
+                    String fileName = songFile.getName();
+                    Log.d(LOG_TAG, String.format("Found album song %s", fileName));
+                    Matcher matcher = ALBUM_SONG_FILE_REGEX.matcher(fileName);
+                    if (!matcher.matches()) {
+                        Log.w("Album song does not match pattern: %s", fileName);
+                    }
+                    String songName = matcher.matches() ? matcher.group(3) : fileName;
+                    Song newSong = new Song(songName, songFile.getAbsolutePath(), bandID, albumID, albumYear);
                     database.songDAO().insert(newSong);
                 });
     }

@@ -26,7 +26,10 @@ public interface SongDAO {
     @Query("SELECT * FROM Song ORDER BY random() LIMIT :batchSize")
     List<Song> getRandomBatch(int batchSize);
 
-    @Query("SELECT * FROM Song WHERE albumId IN (SELECT uid FROM ALBUM WHERE year >= :startYear AND year <= :endYear) ORDER BY random() LIMIT :batchSize")
+    @Query("SELECT DISTINCT year FROM Song WHERE year IS NOT NULL ORDER BY year")
+    List<Integer> getYears();
+
+    @Query("SELECT * FROM Song WHERE year >= :startYear AND year <= :endYear ORDER BY random() LIMIT :batchSize")
     List<Song> getRandomBatchForEra(int startYear, int endYear, int batchSize);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

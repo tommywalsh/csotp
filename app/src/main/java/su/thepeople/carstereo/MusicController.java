@@ -185,9 +185,9 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         private void enterYearLock() {
-            SongInfo song = musicPlayer.getCurrentSong();
-            if (song != null && song.album != null && song.album.year != null) {
-                int year = song.album.year;
+            SongInfo songInfo = musicPlayer.getCurrentSong();
+            if (songInfo != null && songInfo.song.year != null) {
+                int year = songInfo.song.year;
                 songProvider = new SongProvider.EraProvider(database, year, year);
                 mode = PlayMode.YEAR;
                 MusicController.this.replenishPlaylist(false);
@@ -262,7 +262,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         @Override
         protected void onRequestYearList() {
-            List<Integer> years = database.albumDAO().getYears();
+            List<Integer> years = database.songDAO().getYears();
             mainActivity.fulfillYearListRequest(years);
         }
 
