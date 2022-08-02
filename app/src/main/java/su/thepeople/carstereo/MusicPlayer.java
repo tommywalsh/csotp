@@ -113,6 +113,8 @@ class MusicPlayer {
             if (playlist.isEmpty()) {
                 Log.v(LOG_ID, "Playlist has been depleted. Now replenishing");
                 controller.replenishPlaylist();
+
+                // If the playlist is not replenished successfully, switch into shuffle mode and continue
             }
         } else {
             Log.w(LOG_ID, "Playlist is empty. No song to load into system player.");

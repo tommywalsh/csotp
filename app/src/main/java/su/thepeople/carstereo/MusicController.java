@@ -87,7 +87,22 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
      *                           song.
      */
     private void replenishPlaylist(boolean replaceCurrentSong) {
-        musicPlayer.setPlaylist(getInfoForSongs(songProvider.getNextBatch()), replaceCurrentSong);
+        List<Song> newBatch = songProvider.getNextBatch();
+
+        // If songprovider does not provide anything for the next batch, then switch to all-shuffle mode
+        if (newBatch.isEmpty()) {
+            Log.d(LOG_ID, "Song provider returned empty list, changing to shuffle mode");
+            transitionToShuffle(replaceCurrentSong);
+            newBatch = songProvider.getNextBatch();
+        }
+        musicPlayer.setPlaylist(getInfoForSongs(newBatch), replaceCurrentSong);
+    }
+
+    private void transitionToShuffle(boolean replaceCurrentSong) {
+        mode = PlayMode.SHUFFLE;
+        songProvider = new SongProvider.ShuffleProvider(database);
+        MusicController.this.replenishPlaylist(replaceCurrentSong);
+        mainActivity.notifyPlayModeChange(PlayMode.SHUFFLE);
     }
 
     /**
@@ -95,7 +110,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
      * even if the original request came from a different thread. Therefore, it is safe to do things like make expensive
      * calls to the Database, since there is no chance of holding up another thread while we are doing so.
      */
-    private class MusicControllerAPIImpl extends MusicControllerAPI {
+    protected class MusicControllerAPIImpl extends MusicControllerAPI {
 
         private final Looper looper;
 
@@ -134,8 +149,8 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         @Override
         protected void onRestartCurrentAlbum() {
-            enterAlbumLock();
-            MusicController.this.replenishPlaylist(true);
+            Log.d(LOG_ID, "Restarting current album");
+            enterAlbumLock(true);
         }
 
         @Override
@@ -158,9 +173,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         @Override
         protected void onToggleBandMode() {
             if (mode == PlayMode.BAND) {
-                mode = PlayMode.SHUFFLE;
-                songProvider = new SongProvider.ShuffleProvider(database);
-                MusicController.this.replenishPlaylist(true);
+                transitionToShuffle(true);
             } else {
                 SongInfo song = musicPlayer.getCurrentSong();
                 if (song != null) {
@@ -168,18 +181,23 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
                     songProvider = new SongProvider.BandProvider(database, bandId);
                     mode = PlayMode.BAND;
                     MusicController.this.replenishPlaylist(false);
+                    mainActivity.notifyPlayModeChange(mode);
                 }
             }
-            mainActivity.notifyPlayModeChange(mode);
         }
 
-        private void enterAlbumLock() {
+        private void enterAlbumLock(boolean forceFromBeginning) {
             SongInfo song = musicPlayer.getCurrentSong();
+            Log.d(LOG_ID, String.format("Locking on album () with song ()", song.album, song.toString()));
             if (song != null && song.album != null) {
                 long albumId = song.album.uid;
-                songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
+                if (forceFromBeginning) {
+                    songProvider = new SongProvider.AlbumProvider(database, albumId);
+                } else {
+                    songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
+                }
                 mode = PlayMode.ALBUM;
-                MusicController.this.replenishPlaylist(false);
+                MusicController.this.replenishPlaylist(forceFromBeginning);
                 mainActivity.notifyPlayModeChange(PlayMode.ALBUM);
             }
         }
@@ -198,22 +216,16 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         @Override
         protected void onToggleAlbumMode() {
             if (mode == PlayMode.ALBUM) {
-                mode = PlayMode.SHUFFLE;
-                songProvider = new SongProvider.ShuffleProvider(database);
-                MusicController.this.replenishPlaylist(true);
-                mainActivity.notifyPlayModeChange(PlayMode.SHUFFLE);
+                transitionToShuffle(true);
             } else {
-                enterAlbumLock();
+                enterAlbumLock(false);
             }
         }
 
         @Override
         protected void onToggleYearMode() {
             if (mode == PlayMode.YEAR) {
-                mode = PlayMode.SHUFFLE;
-                songProvider = new SongProvider.ShuffleProvider(database);
-                MusicController.this.replenishPlaylist(true);
-                mainActivity.notifyPlayModeChange(PlayMode.SHUFFLE);
+                transitionToShuffle(true);
             } else {
                 enterYearLock();
             }

@@ -7,6 +7,7 @@ import su.thepeople.carstereo.data.Band;
 import su.thepeople.carstereo.data.Database;
 import su.thepeople.carstereo.data.Song;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -151,69 +152,56 @@ public abstract class SongProvider {
 
     /**
      * Specialization for "album mode". Songs continue playing in album order, starting with the one AFTER the specified
-     * song, and then "wrapping around" to the beginning of the album.
+     * initial song, and then "wrapping around" to the beginning of the album. If no initial song is specified, then we
+     * start from the beginning of the album.
+     *
+     * After each song plays once (regardless of where we started), the provider will refuse to provide any new songs.
      */
     public static class AlbumProvider extends SongProvider {
         private final long albumId;
-        // This will be set only for the first batch.
-        private Optional<Long> previousSongId;
+
+        List<Song> playlist;
 
         AlbumProvider(Database database, long albumId) {
             super(database);
             this.albumId = albumId;
-            this.previousSongId = Optional.empty();  // empty here means start from the first song.
+            initializePlaylist(Optional.empty());
         }
+
         AlbumProvider(Database database, long albumId, long previousSongId) {
             super(database);
             this.albumId = albumId;
-            this.previousSongId = Optional.of(previousSongId);
+            initializePlaylist(Optional.of(previousSongId));
         }
 
-        /**
-         * Helper method to pop a song from the front of a list.
-         */
-        private Optional<Song> popSong(List<Song> list) {
-            if (list.isEmpty()) {
-                return Optional.empty();
-            } else {
-                Song song = list.get(0);
-                list.remove(0);
-                return Optional.of(song);
-            }
+        private void initializePlaylist(Optional<Long> maybePreviousSongId) {
+            List<Song> albumSongsInOrder = getDatabase().songDAO().getAllForAlbum(albumId);
+            playlist = albumSongsInOrder;
+            maybePreviousSongId.ifPresent(previousSongId -> {
+                playlist = new ArrayList<>();
+                List<Song> tail = new ArrayList<>();
+                boolean foundPrevSong = false;
+                for (Song song : albumSongsInOrder) {
+                    if (foundPrevSong) {
+                        playlist.add(song);
+                    } else {
+                        if (song.uid == previousSongId) {
+                            foundPrevSong = true;
+                            // Don't add this song to the list!
+                        } else {
+                            tail.add(song);
+                        }
+                    }
+                }
+                playlist.addAll(tail);
+            });
         }
 
         public List<Song> getNextBatch() {
-            Log.d(LOG_ID, String.format("Getting all songs for band %d", albumId));
-
-            // This list will contain the full album from start to finish.
-            final List<Song> list = getDatabase().songDAO().getAllForAlbum(albumId);
-
-            /*
-             * On the first trip through, we might need to prune the beginning of the list, so that we continue playing
-             * the album AFTER the initially-specified song. So, here we loop until we've popped off the song that
-             * matches. The remaining list will be the remainder of the album.
-             */
-            previousSongId.ifPresent(songId -> {
-                Log.v(LOG_ID, String.format("Skipping forward so we start after song %d", songId));
-                Optional<Song> song = popSong(list);
-                while (song.isPresent()) {
-                    if (song.get().uid == songId) {
-                        break;
-                    }
-                    Log.v(LOG_ID, String.format("Skipping song %d", song.get().uid));
-                    song = popSong(list);
-                }
-            });
-
-            // Make sure we don't do any pruning on the next batch -- we want to return the whole album.
-            previousSongId = Optional.empty();
-
-            // If the specified song was the last one on the album, then we threw away the whole list! Start fresh.
-            if (list.isEmpty()) {
-                Log.v(LOG_ID, "We skipped the entire album! Start again");
-                return getDatabase().songDAO().getAllForAlbum(albumId);
-            }
-            return list;
+            // This provider should only give a single batch of songs once.
+            List<Song> returnValue = new ArrayList<>(playlist);
+            playlist.clear();
+            return returnValue;
         }
     }
 }
