@@ -134,6 +134,79 @@ public abstract class SongProvider {
     }
 
     /**
+     * Block Party Weekend. This shuffles the entire collection, but every so often will play a few
+     * songs in a row by the same band.
+     */
+    public static class BlockPartyProvider extends SongProvider {
+        private static final int BLOCK_PARTY_SIZE = 5;
+
+        BlockPartyProvider(Database database) {
+            super(database);
+        }
+
+        private long getRandomBand() {
+            // We have three different strategies for choosing a band. We "average" them by randomizing.
+            double randomTrinary = Math.random() * 3;
+            if (randomTrinary < 1.0) {
+                /*
+                 * Choose uniformly from all bands. This biases the song choices towards songs by bands with only a
+                 * small number of songs in the collection. For example, say we have 1 song by band A and 100 songs by
+                 * band B. We will choose band A with the same frequency we choose band B. Therefore A's single song
+                 * is 100 times more likely to be chosen than each of B's songs.
+                 */
+                return getRandomBandUnweighted();
+            } else if (randomTrinary < 2.0) {
+                /*
+                 * Choose a random song, then choose that band. This biases the song choices towards songs by bands
+                 * with a large number of songs in the collection. For example, say band A's albums each have 21 short
+                 * songs on them, whereas band B's albums have 7 long songs. Even if we have the same quantity of music,
+                 * we'll choose A three times more often than B. This will roughly equalize the time spent listening to
+                 * A and B, but not the number of songs.
+                 */
+                return getRandomBandWeightedBySong();
+            } else {
+                /*
+                 * Finally, choose a random album, then choose that band. This biases the selection towards bands with
+                 * lots of albums in the collection. This partially counteracts the worst of the biases in the other
+                 * two strategies.
+                 */
+                return getRandomBandWeightedByAlbum();
+            }
+        }
+
+        private long getRandomBandUnweighted() {
+            return getDatabase().bandDAO().getRandom().uid;
+        }
+
+        private long getRandomBandWeightedBySong() {
+            List<Song> singleSongList = getDatabase().songDAO().getRandomBatch(1);
+            return singleSongList.get(0).bandId;
+        }
+
+        private long getRandomBandWeightedByAlbum() {
+            Album album = getDatabase().albumDAO().getRandom();
+            return album.bandId;
+        }
+
+        public List<Song> getNextBatch() {
+            List<Song> songs = new ArrayList<>();
+            songs.addAll(getBatchBlock());
+            songs.addAll(getShuffleBlock());
+            return songs;
+        }
+
+        private List<Song> getBatchBlock() {
+            long bandId = getRandomBand();
+            Log.d(LOG_ID, String.format("Using band %s for block party", bandId));
+            return getDatabase().songDAO().getSomeForBand(bandId, BLOCK_PARTY_SIZE);
+        }
+
+        private List<Song> getShuffleBlock() {
+            return getDatabase().songDAO().getRandomBatch(BLOCK_PARTY_SIZE);
+        }
+    }
+
+    /**
      * Specialization for "band mode". Each song is randomly selected from all of the band's songs.
      */
     public static class BandProvider extends SongProvider {

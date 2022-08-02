@@ -25,7 +25,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_requestYears = registerCallback(this::onRequestYearList);
         cb_restartCurrentSong = registerCallback(this::onRestartCurrentSong);
         cb_restartCurrentAlbum = registerCallback(this::onRestartCurrentAlbum);
-        cb_doubleShot = registerCallback(this::onToggleDoubleShotMode);
+        cb_changeSubMode = registerCallback(this::onChangeSubMode);
     }
 
     // Pauses or unpauses the player.
@@ -35,7 +35,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
 
     public void restartCurrentAlbum() { callInterThread(cb_restartCurrentAlbum); }
 
-    public void toggleDoubleShotMode() { callInterThread(cb_doubleShot); }
+    public void changeSubMode() { callInterThread(cb_changeSubMode); }
 
     // Moves ahead to next song.
     public void skipAhead() {
@@ -97,7 +97,7 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onRequestYearList();
     protected abstract void onRestartCurrentSong();
     protected abstract void onRestartCurrentAlbum();
-    protected abstract void onToggleDoubleShotMode();
+    protected abstract void onChangeSubMode();
 
     private final int cb_playPause;
     private final int cb_skip;
@@ -114,5 +114,5 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     private final int cb_requestYears;
     private final int cb_restartCurrentSong;
     private final int cb_restartCurrentAlbum;
-    private final int cb_doubleShot;
+    private final int cb_changeSubMode;
 }

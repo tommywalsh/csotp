@@ -217,11 +217,10 @@ public class MainActivity extends AppCompatActivity {
         songWidget.setSelected(true);
 
         messageWidget = findViewById(R.id.message);
-        messageWidget.setVisibility(View.INVISIBLE);
 
         playPauseWidget = findViewById(R.id.playPause);
         playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
-        playPauseWidget.setOnLongClickListener(view -> onPlayModeChooserRequest());
+        playPauseWidget.setOnLongClickListener(view -> onPlaySubModeChangeRequest());
 
         nextSongWidget = findViewById(R.id.next);
         nextSongWidget.setOnClickListener(view -> onNextSongRequest());
@@ -322,12 +321,19 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private boolean onPlayModeChooserRequest() {
-        Log.d(LOG_ID, "User wants to choose play mode");
-        // Eventually, we'll probably have a "play mode chooser" UI. For now, we just toggle double-shot mode.
-        controller.toggleDoubleShotMode();
-        int newVisibility = messageWidget.getVisibility() == View.VISIBLE ? View.INVISIBLE : View.VISIBLE;
-        messageWidget.setVisibility(newVisibility);
+    private boolean onPlaySubModeChangeRequest() {
+        Log.d(LOG_ID, "User wants to choose play submode");
+        controller.changeSubMode();
+
+        // This is really messy. We should have the backend formally report the sub-mode to the UI.
+        String currentMessage = messageWidget.getText().toString();
+        if (currentMessage.isEmpty()) {
+            messageWidget.setText(R.string.double_shot);
+        } else if (currentMessage.equals(getResources().getString(R.string.double_shot))) {
+            messageWidget.setText(R.string.block_party);
+        } else {
+            messageWidget.setText("");
+        }
         return true;
     }
 

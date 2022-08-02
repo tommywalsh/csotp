@@ -154,16 +154,33 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
-        protected void onToggleDoubleShotMode() {
+        protected void onChangeSubMode() {
+            /*
+             * This code could be a lot better. The idea here is that we have different "play modes"
+             * (e.g. we could be in album-lock mode or shuffle mode, etc.).  On top of that, each
+             * mode might have its own set of defined sub-modes. This method will jump to the next
+             * sub-mode.
+             *
+             * Right now, SHUFFLE is the only mode that has any sub-modes. The three sub-modes are:
+             * normal shuffle, double-shot weekend, and block-party weekend.
+             *
+             * This code here is currently just a quick-and-dirty implementation. If we add more
+             * sub-modes, we will likely want to introduce an abstract interface, and have each mode
+             * define its own sub-modes. But for now, this works okay.
+             */
             if (mode == PlayMode.SHUFFLE) {
-                Log.d(LOG_ID, "Double shot toggle");
+                Log.d(LOG_ID, "Shuffle sub-mode toggle");
 
-                // This "instanceof" is yucky. Maybe refactor if/when we add more than just the double-shot option here.
                 if (songProvider instanceof SongProvider.ShuffleProvider) {
+                    // If we're in basic shuffle, change to double-shot
                     SongInfo song = musicPlayer.getCurrentSong();
                     Optional<Band> startingBand = (song == null) ? Optional.empty() : Optional.of(song.band);
                     songProvider = new SongProvider.DoubleShotProvider(database, startingBand);
+                } else if (songProvider instanceof SongProvider.DoubleShotProvider) {
+                    // If we're in double-shot, change to block party
+                    songProvider = new SongProvider.BlockPartyProvider(database);
                 } else {
+                    // Otherwise, we're in block party, so switch back to basic shuffle
                     songProvider = new SongProvider.ShuffleProvider(database);
                 }
                 MusicController.this.replenishPlaylist(false);
