@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,10 +40,17 @@ import su.thepeople.carstereo.data.Band;
  */
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
+    private static final String LOG_ID = "Item Chooser";
+
     protected abstract String getDisplayString(T obj);
+    protected abstract String getCoarseAbbreviation(T obj);
+    protected abstract String getFineAbbreviation(T obj);
 
     private static final String INPUT_KEY = "INPUT_LIST";
     private static final String OUTPUT_KEY = "OUTPUT_ITEM";
+
+    private static final int COURSE_SCROLL_MINIMUM = 10;
+    private static final int FINE_SCROLL_MINIMUM = 60;
 
     @SuppressWarnings("rawtypes")
     private static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
@@ -61,6 +69,8 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         public static ActivityIODefinition<ArrayList, Album> getIODefinition() {
             return ItemChooser.makeIODefinition(AlbumChooser.class, Album.class);
         }
+        public String getCoarseAbbreviation(Album b) { return ""; }
+        public String getFineAbbreviation(Album b) { return ""; }
     }
 
     /**
@@ -74,17 +84,34 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         public static ActivityIODefinition<ArrayList, Band> getIODefinition() {
             return ItemChooser.makeIODefinition(BandChooser.class, Band.class);
         }
+
+        public String getCoarseAbbreviation(Band b) {
+            return b.name.substring(0,1);
+        }
+        public String getFineAbbreviation(Band b) {
+            return b.name.substring(0, 2);
+        }
+
     }
 
     /**
      * A scrollable year picker
      */
     public static class YearChooser extends ItemChooser<Integer> {
-        @Override protected String getDisplayString(Integer year) { return Integer.toString(year); }
+        @Override
+        protected String getDisplayString(Integer year) {
+            return Integer.toString(year);
+        }
+
         @SuppressWarnings("rawtypes")
         public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
             return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
         }
+
+        public String getCoarseAbbreviation(Integer b) {
+            return "";
+        }
+        public String getFineAbbreviation(Integer b) { return ""; }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
@@ -97,11 +124,6 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     }
 
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
-        private final List<T> items;
-
-        Adapter(List<T> items) {
-            this.items = items;
-        }
 
         @Override
         public @NonNull ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -140,7 +162,6 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     private RecyclerView listView;
     private List<Button> courseButtons;
     private List<Button> fineButtons;
-    private int listLength;
 
     /*
      * We divide the scroll region into 25 roughly-equal parts.
@@ -155,48 +176,101 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
      * In other words, in the above example, we are somewhere between 64% and 68% of the entire list.
      */
     private static class ScrollPosition {
-        double course;
+        double coarse;
         double fine;
-    }
-
-    private void courseScroll(double pct) {
-        int itemIndex = (int) (pct * listLength);
-        listView.scrollToPosition(itemIndex);
+        public ScrollPosition(double coarse, double fine) {
+            this.coarse = coarse;
+            this.fine = fine;
+        }
     }
 
     private ScrollPosition getScrollPosition() {
         int offset = listView.computeVerticalScrollOffset();
         int range = listView.computeVerticalScrollRange();
-        double pct = range == 0 ? 0.0 : offset / (double) range;
+        int extent = listView.computeVerticalScrollExtent();
+        if (range == 0.0 || extent == 0.0) {
+            return new ScrollPosition(0.0, 0.0);
+        }
+        Log.d(LOG_ID, String.format("After scroll, offset is %s, extent is %s, and range is %s", offset, extent, range));
+        int screenCenterPos = offset + (extent / 2);
+        double pct = screenCenterPos / (double)range;
 
         double coursePosition = Math.floor(pct * 5.0) / 5.0;
         double remainder = pct - coursePosition;
         double finePosition = Math.floor(remainder * 25.0) / 5.0;
 
-        ScrollPosition position = new ScrollPosition();
-        position.course = coursePosition;
-        position.fine = finePosition;
-        return position;
-    }
-
-    private void fineScroll(double pct) {
-        ScrollPosition currentPosition = getScrollPosition();
-        double desiredPosition = currentPosition.course + (pct / 5.0);
-        int itemIndex = (int) (desiredPosition * listLength);
-        listView.scrollToPosition(itemIndex);
+        return new ScrollPosition(coursePosition, finePosition);
     }
 
     private void updateScrollers() {
         ScrollPosition currentPosition = getScrollPosition();
+        updateFineButtons();
+
         courseButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
         fineButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
 
-        int courseIndex = (int) (currentPosition.course * 5.0);
+        int courseIndex = (int) (currentPosition.coarse * 5.0);
         int fineIndex = (int) (currentPosition.fine * 5.0);
 
         courseButtons.get(courseIndex).setBackgroundResource(R.color.colorAccent);
         fineButtons.get(fineIndex).setBackgroundResource(R.color.colorAccent);
+
     }
+
+    /*
+     * Scroll behavior:
+     *   - First scroll position is always first item, last is always last item
+     *   - Other positions are in the middle of their ranges.
+     *
+     * So, for a list of 100 items, the scroll-to positions for the course buttons will be
+     * First button for range 0-19, scrolls to 0
+     * Second button for range 20-39, scrolls to 30
+     * Third button for range 40-59, scrolls to 50
+     * Fourth button for range 60-79, scrolls to 70
+     * Fifth button for range 80-99, scrolls to 99
+     */
+    private static View.OnClickListener scrollerCallback(int position, RecyclerView view) {
+        return v -> {
+            Log.d(LOG_ID, String.format("Scrolling to %s", position));
+            view.scrollToPosition(position);
+        };
+    }
+
+    private void updateSingleCoarseButton(Button button, List<T> items, int topPosition, int scrollToPosition) {
+        button.setOnClickListener(scrollerCallback(scrollToPosition, listView));
+        button.setText(getCoarseAbbreviation(items.get(topPosition)));
+    }
+
+    private void updateSingleFineButton(Button button, List<T> items, int topPosition, int scrollToPosition) {
+        button.setOnClickListener(scrollerCallback(scrollToPosition, listView));
+        button.setText(getFineAbbreviation(items.get(topPosition)));
+    }
+
+
+    private void initializeCoarseButtons(List<T> items) {
+        int numItems = items.size();
+        updateSingleCoarseButton(courseButtons.get(0), items, 0, 0);
+        updateSingleCoarseButton(courseButtons.get(1), items, (int)(numItems * 0.3), (int)(numItems * 0.3));
+        updateSingleCoarseButton(courseButtons.get(2), items, (int)(numItems * 0.5), (int)(numItems * 0.5));
+        updateSingleCoarseButton(courseButtons.get(3), items, (int)(numItems * 0.7), (int)(numItems * 0.7));
+        updateSingleCoarseButton(courseButtons.get(4), items, numItems - 1, numItems - 1);
+    }
+
+    private void updateFineButtons() {
+        ScrollPosition position = getScrollPosition();
+        int size = items.size();
+        int topOfCoarseSpan = (int)(position.coarse * size);
+        int spanLength = (int)(items.size() * 0.2);
+        int lastIndex = Math.min(topOfCoarseSpan + spanLength, size - 1);
+        Log.d(LOG_ID, String.format("%s of %s means span of %s starts at %s", position.coarse, size, spanLength, topOfCoarseSpan));
+        updateSingleFineButton(fineButtons.get(0), items, topOfCoarseSpan, topOfCoarseSpan);
+        updateSingleFineButton(fineButtons.get(1), items, topOfCoarseSpan + (3*spanLength)/10, topOfCoarseSpan + (3*spanLength)/10);
+        updateSingleFineButton(fineButtons.get(2), items, topOfCoarseSpan + (5*spanLength)/10, topOfCoarseSpan + (5*spanLength)/10);
+        updateSingleFineButton(fineButtons.get(3), items, topOfCoarseSpan + (7*spanLength)/10, topOfCoarseSpan + (7*spanLength)/10);
+        updateSingleFineButton(fineButtons.get(4), items, lastIndex, lastIndex);
+    }
+
+    private List<T> items;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -208,19 +282,19 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         assert bundle != null;
         Serializable untypedInput = bundle.getSerializable(INPUT_KEY);
         assert untypedInput != null;
-        @SuppressWarnings("unchecked") ArrayList<T> items = (ArrayList<T>) untypedInput;
+        @SuppressWarnings("unchecked") ArrayList<T> typedInput = (ArrayList<T>)untypedInput;
+        items = typedInput;
 
         listView = findViewById(R.id.itemRecycler);
         listView.setHasFixedSize(true);
 
         listView.setLayoutManager(new LinearLayoutManager(this));
-        listView.setAdapter(new Adapter(items));
+        listView.setAdapter(new Adapter());
 
-        findViewById(R.id.courseScroller).setVisibility(items.size() > 8 ? View.VISIBLE : View.INVISIBLE);
-        findViewById(R.id.fineScroller).setVisibility(items.size() >  35 ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.courseScroller).setVisibility(items.size() > COURSE_SCROLL_MINIMUM ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.fineScroller).setVisibility(items.size() > FINE_SCROLL_MINIMUM ? View.VISIBLE : View.INVISIBLE);
 
-        if (items.size() > 8) {
-            listLength = items.size();
+        if (items.size() > COURSE_SCROLL_MINIMUM) {
 
             listView.setOnScrollChangeListener((v, x, y, x1, y1) -> updateScrollers());
 
@@ -234,12 +308,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
                             .map(id -> (Button) findViewById(id))
                             .collect(Collectors.toList());
 
-            for (int i = 0; i < 5; i++) {
-                final int count = i;
-                courseButtons.get(i).setOnClickListener(view -> courseScroll(0.1 + 0.2 * count));
-                fineButtons.get(i).setOnClickListener(view -> fineScroll(0.1 + 0.2 * count));
-            }
-
+            initializeCoarseButtons(items);
             updateScrollers();
         }
     }
