@@ -13,7 +13,8 @@ import java.util.List;
 @Dao
 public interface AlbumDAO {
 
-    @Query("SELECT * FROM Album WHERE bandId = :bandId ORDER BY name")
+    // TODO: This query not guaranteed to work with multiple albums in the same year
+    @Query("SELECT * FROM Album WHERE bandId = :bandId ORDER BY year, name")
     List<Album> getAllForBand(long bandId);
 
     @Query("SELECT * FROM Album WHERE uid = :albumId")

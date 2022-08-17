@@ -209,17 +209,50 @@ public abstract class SongProvider {
     /**
      * Specialization for "band mode". Each song is randomly selected from all of the band's songs.
      */
-    public static class BandProvider extends SongProvider {
+    public static class BandShuffleProvider extends SongProvider {
         private final long bandId;
 
-        BandProvider(Database database, long bandId) {
+        BandShuffleProvider(Database database, long bandId) {
             super(database);
             this.bandId = bandId;
         }
 
         public List<Song> getNextBatch() {
             Log.d(LOG_ID, String.format("Getting all songs for band %d", bandId));
-            return getDatabase().songDAO().getAllForBand(bandId);
+            return getDatabase().songDAO().getAllForBandShuffled(bandId);
+        }
+    }
+
+    public static class BandSequentialProvider extends SongProvider {
+        private final long bandId;
+        List<Song> playlist;
+
+        BandSequentialProvider(Database database, long bandId, Optional<Long> previousSongId, boolean keepSong) {
+            super(database);
+            this.bandId = bandId;
+            initializePlaylist(previousSongId, keepSong);
+        }
+
+        private void initializePlaylist(Optional<Long> maybePreviousSongId, boolean keepSong) {
+            List<Song> bandSongsInOrder = getDatabase().songDAO().getAllForBandOrdered(bandId);
+            playlist = bandSongsInOrder;
+            maybePreviousSongId.ifPresent(songId -> playlist = Utils.splitList(bandSongsInOrder, songId, keepSong, s -> s.uid));
+        }
+
+        public List<Song> getNextBatch() {
+            // This provider should only give a single batch of songs once.
+            List<Song> returnValue = new ArrayList<>(playlist);
+            playlist.clear();
+            return returnValue;
+        }
+
+        public static BandSequentialProvider atAlbumStart(Database database, Album album) {
+            List<Song> albumSongs = database.songDAO().getAllForAlbum(album.uid);
+            if (albumSongs.isEmpty()) {
+                return new BandSequentialProvider(database, album.bandId, Optional.empty(), false);
+            } else {
+                return new BandSequentialProvider(database, album.bandId, Optional.of(albumSongs.get(0).uid), true);
+            }
         }
     }
 
@@ -235,39 +268,16 @@ public abstract class SongProvider {
 
         List<Song> playlist;
 
-        AlbumProvider(Database database, long albumId) {
+        AlbumProvider(Database database, long albumId, Optional<Long> previousSongId) {
             super(database);
             this.albumId = albumId;
-            initializePlaylist(Optional.empty());
-        }
-
-        AlbumProvider(Database database, long albumId, long previousSongId) {
-            super(database);
-            this.albumId = albumId;
-            initializePlaylist(Optional.of(previousSongId));
+            initializePlaylist(previousSongId);
         }
 
         private void initializePlaylist(Optional<Long> maybePreviousSongId) {
             List<Song> albumSongsInOrder = getDatabase().songDAO().getAllForAlbum(albumId);
             playlist = albumSongsInOrder;
-            maybePreviousSongId.ifPresent(previousSongId -> {
-                playlist = new ArrayList<>();
-                List<Song> tail = new ArrayList<>();
-                boolean foundPrevSong = false;
-                for (Song song : albumSongsInOrder) {
-                    if (foundPrevSong) {
-                        playlist.add(song);
-                    } else {
-                        if (song.uid == previousSongId) {
-                            foundPrevSong = true;
-                            // Don't add this song to the list!
-                        } else {
-                            tail.add(song);
-                        }
-                    }
-                }
-                playlist.addAll(tail);
-            });
+            maybePreviousSongId.ifPresent(songId -> playlist = Utils.splitList(albumSongsInOrder, songId, false, s -> s.uid));
         }
 
         public List<Song> getNextBatch() {

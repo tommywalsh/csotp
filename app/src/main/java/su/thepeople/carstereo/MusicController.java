@@ -15,8 +15,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * This class controls what songs are (or aren't) playing. It mainly translates simplified messages from the UI and
- * passes on more detailed instructions to the music player.
+ * This class controls what songs are (or aren't) playing.
+ *
+ * This class talks back and forth to the UI. It is in charge of controlling the music player, and
+ * changing between play modes.
  */
 public class MusicController extends LooperThread<MusicControllerAPI> {
 
@@ -29,7 +31,7 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
     private final MainActivityAPI mainActivity;
 
     // Helper object which knows how to dump songs into the queued playlist.
-    private SongProvider songProvider;
+    //private SongProvider songProvider;
 
     // Helper objects which actually knows how to play music.
     private MusicPlayer musicPlayer;
@@ -53,7 +55,8 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         musicPlayer = new MusicPlayer(mainActivity, api);
         try {
             database = Database.getDatabase(context);
-            songProvider = new SongProvider.ShuffleProvider(database);
+            //songProvider = new SongProvider.ShuffleProvider(database);
+            playMode = new PlayMode.CollectionMode(database);
             replenishPlaylist(true);
         } catch (NoLibraryException e) {
             mainActivity.reportException(e);
@@ -62,14 +65,15 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
 
     // These are the "modes" that control which songs get played in which order.
-    public enum PlayMode {
+    public enum PlayModeEnum {
         BAND,
         ALBUM,
         YEAR,
         SHUFFLE
     }
-    private PlayMode mode = PlayMode.SHUFFLE;
+   // private PlayMode mode = PlayMode.SHUFFLE;
 
+    private PlayMode playMode;
 
     // Should the system be playing music right now, or not?
     private enum PlayState {
@@ -87,22 +91,22 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
      *                           song.
      */
     private void replenishPlaylist(boolean replaceCurrentSong) {
-        List<Song> newBatch = songProvider.getNextBatch();
+        List<Song> newBatch = playMode.getSongProvider().getNextBatch();
 
         // If songprovider does not provide anything for the next batch, then switch to all-shuffle mode
         if (newBatch.isEmpty()) {
             Log.d(LOG_ID, "Song provider returned empty list, changing to shuffle mode");
             transitionToShuffle(replaceCurrentSong);
-            newBatch = songProvider.getNextBatch();
+            newBatch = playMode.getSongProvider().getNextBatch();
         }
         musicPlayer.setPlaylist(getInfoForSongs(newBatch), replaceCurrentSong);
     }
 
     private void transitionToShuffle(boolean replaceCurrentSong) {
-        mode = PlayMode.SHUFFLE;
-        songProvider = new SongProvider.ShuffleProvider(database);
+        playMode = new PlayMode.CollectionMode(database);
         MusicController.this.replenishPlaylist(replaceCurrentSong);
-        mainActivity.notifyPlayModeChange(PlayMode.SHUFFLE);
+        mainActivity.notifyPlayModeChange(PlayModeEnum.SHUFFLE);
+        mainActivity.notifySubModeChange(playMode.getSubModeIDString());
     }
 
     /**
@@ -148,92 +152,78 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         }
 
         @Override
-        protected void onRestartCurrentAlbum() {
-            Log.d(LOG_ID, "Restarting current album");
-            enterAlbumLock(true);
+        protected void onSkipBackward() {
+            Log.d(LOG_ID, "Skipping backwards");
+            boolean changed = playMode.resyncBackward(musicPlayer.getCurrentSong());
+            if (changed) {
+                MusicController.this.replenishPlaylist(true);
+            }
+        }
+
+        @Override
+        protected void onSkipForward() {
+            Log.d(LOG_ID, "Skipping forward");
+            boolean changed = playMode.resyncForward(musicPlayer.getCurrentSong());
+            if (changed) {
+                MusicController.this.replenishPlaylist(true);
+            }
         }
 
         @Override
         protected void onChangeSubMode() {
-            /*
-             * This code could be a lot better. The idea here is that we have different "play modes"
-             * (e.g. we could be in album-lock mode or shuffle mode, etc.).  On top of that, each
-             * mode might have its own set of defined sub-modes. This method will jump to the next
-             * sub-mode.
-             *
-             * Right now, SHUFFLE is the only mode that has any sub-modes. The three sub-modes are:
-             * normal shuffle, double-shot weekend, and block-party weekend.
-             *
-             * This code here is currently just a quick-and-dirty implementation. If we add more
-             * sub-modes, we will likely want to introduce an abstract interface, and have each mode
-             * define its own sub-modes. But for now, this works okay.
-             */
-            if (mode == PlayMode.SHUFFLE) {
-                Log.d(LOG_ID, "Shuffle sub-mode toggle");
-
-                if (songProvider instanceof SongProvider.ShuffleProvider) {
-                    // If we're in basic shuffle, change to double-shot
-                    SongInfo song = musicPlayer.getCurrentSong();
-                    Optional<Band> startingBand = (song == null) ? Optional.empty() : Optional.of(song.band);
-                    songProvider = new SongProvider.DoubleShotProvider(database, startingBand);
-                } else if (songProvider instanceof SongProvider.DoubleShotProvider) {
-                    // If we're in double-shot, change to block party
-                    songProvider = new SongProvider.BlockPartyProvider(database);
-                } else {
-                    // Otherwise, we're in block party, so switch back to basic shuffle
-                    songProvider = new SongProvider.ShuffleProvider(database);
-                }
+            boolean wasChanged = playMode.changeSubMode(musicPlayer.getCurrentSong());
+            if (wasChanged) {
                 MusicController.this.replenishPlaylist(false);
+                mainActivity.notifySubModeChange(playMode.getSubModeIDString());
             }
         }
 
         @Override
         protected void onToggleBandMode() {
-            if (mode == PlayMode.BAND) {
-                transitionToShuffle(true);
+            if (playMode instanceof PlayMode.BandMode) {
+                transitionToShuffle(false);
             } else {
                 SongInfo song = musicPlayer.getCurrentSong();
                 if (song != null) {
                     long bandId = song.band.uid;
-                    songProvider = new SongProvider.BandProvider(database, bandId);
-                    mode = PlayMode.BAND;
+                    playMode = new PlayMode.BandMode(database, bandId);
                     MusicController.this.replenishPlaylist(false);
-                    mainActivity.notifyPlayModeChange(mode);
+                    mainActivity.notifyPlayModeChange(PlayModeEnum.BAND);
+                    mainActivity.notifySubModeChange(playMode.getSubModeIDString());
                 }
             }
         }
 
         private void enterAlbumLock(boolean forceFromBeginning) {
             SongInfo song = musicPlayer.getCurrentSong();
-            Log.d(LOG_ID, String.format("Locking on album () with song ()", song.album, song.toString()));
-            if (song != null && song.album != null) {
+            Log.d(LOG_ID, String.format("Locking on album %s with song %s", song.album, song));
+            if (song.album != null) {
                 long albumId = song.album.uid;
                 if (forceFromBeginning) {
-                    songProvider = new SongProvider.AlbumProvider(database, albumId);
+                    playMode = new PlayMode.AlbumMode(database, albumId, Optional.empty());
                 } else {
-                    songProvider = new SongProvider.AlbumProvider(database, albumId, song.song.uid);
+                    playMode = new PlayMode.AlbumMode(database, albumId, Optional.of(song.song.uid));
                 }
-                mode = PlayMode.ALBUM;
                 MusicController.this.replenishPlaylist(forceFromBeginning);
-                mainActivity.notifyPlayModeChange(PlayMode.ALBUM);
+                mainActivity.notifyPlayModeChange(PlayModeEnum.ALBUM);
             }
+            mainActivity.notifySubModeChange(playMode.getSubModeIDString());
         }
 
         private void enterYearLock() {
             SongInfo songInfo = musicPlayer.getCurrentSong();
             if (songInfo != null && songInfo.song.year != null) {
-                int year = songInfo.song.year;
-                songProvider = new SongProvider.EraProvider(database, year, year);
-                mode = PlayMode.YEAR;
+                playMode = new PlayMode.YearMode(database, songInfo.song.year);
                 MusicController.this.replenishPlaylist(false);
-                mainActivity.notifyPlayModeChange(PlayMode.YEAR);
+                mainActivity.notifyPlayModeChange(PlayModeEnum.YEAR);
             }
+            mainActivity.notifySubModeChange(playMode.getSubModeIDString());
         }
 
         @Override
         protected void onToggleAlbumMode() {
-            if (mode == PlayMode.ALBUM) {
-                transitionToShuffle(true);
+            if (playMode instanceof PlayMode.AlbumMode) {
+                transitionToShuffle(false);
             } else {
                 enterAlbumLock(false);
             }
@@ -241,8 +231,8 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         @Override
         protected void onToggleYearMode() {
-            if (mode == PlayMode.YEAR) {
-                transitionToShuffle(true);
+            if (playMode instanceof PlayMode.YearMode) {
+                transitionToShuffle(false);
             } else {
                 enterYearLock();
             }
@@ -255,26 +245,26 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
 
         @Override
         protected void onLockSpecificBand(long bandId) {
-            songProvider = new SongProvider.BandProvider(database, bandId);
-            mode = PlayMode.BAND;
+            playMode = new PlayMode.BandMode(database, bandId);
             MusicController.this.replenishPlaylist(bandId != musicPlayer.getCurrentSong().band.uid);
-            mainActivity.notifyPlayModeChange(mode);
+            mainActivity.notifyPlayModeChange(PlayModeEnum.BAND);
+            mainActivity.notifySubModeChange(playMode.getSubModeIDString());
         }
 
         @Override
         protected void onLockSpecificAlbum(long albumId) {
-            songProvider = new SongProvider.AlbumProvider(database, albumId);
-            mode = PlayMode.ALBUM;
+            playMode = new PlayMode.AlbumMode(database, albumId, Optional.empty());
             MusicController.this.replenishPlaylist(true);
-            mainActivity.notifyPlayModeChange(mode);
+            mainActivity.notifyPlayModeChange(PlayModeEnum.ALBUM);
+            mainActivity.notifySubModeChange(playMode.getSubModeIDString());
         }
 
         @Override
-        protected void onLockSpecificEra(MainActivity.Era era) {
-            songProvider = new SongProvider.EraProvider(database, era.startYear, era.endYear);
-            mode = PlayMode.YEAR;
+        protected void onLockSpecificYear(int year) {
+            playMode = new PlayMode.YearMode(database, year);
             MusicController.this.replenishPlaylist(true);
-            mainActivity.notifyPlayModeChange(mode);
+            mainActivity.notifyPlayModeChange(PlayModeEnum.YEAR);
+            mainActivity.notifySubModeChange(playMode.getSubModeIDString());
         }
 
         @Override

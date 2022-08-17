@@ -9,17 +9,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-
-import su.thepeople.carstereo.MusicController.PlayMode;
+import su.thepeople.carstereo.MusicController.PlayModeEnum;
 
 /**
  * A full-screen activity that plays on-disk music files. This is intended to be used as a car stereo.
@@ -32,6 +28,12 @@ import su.thepeople.carstereo.MusicController.PlayMode;
  *   - Be controllable without concentration or precise finger movements, so that it can be used while driving.
  *      - Buttons are huge.
  *      - On-screen information is limited, and presented in large text.
+ *
+ *
+ *  There is not a lot of logic in this file. This code mainly handles three tasks:
+ *     - Passing user requests to the backend
+ *     - Starting sub-activities for features that aren't provided by the main UI
+ *     - Updating the screen based on backend changes.
  */
 @SuppressWarnings("ALL")
 public class MainActivity extends AppCompatActivity {
@@ -63,33 +65,21 @@ public class MainActivity extends AppCompatActivity {
 
     private SubActivityManager subActivityManager = new SubActivityManager(this);
 
-    public static class Era implements Serializable {
-        public int startYear;
-        public int endYear;
-        public String label;
-        Era(String label, int startYear, int endYear) {
-            this.startYear = startYear;
-            this.endYear = endYear;
-            this.label = label;
-        }
-    }
-
     /**
      * This helper class defines what happens when other parts of the app send us a message.
      */
     private class MainActivityAPIImpl extends MainActivityAPI {
 
         @Override
-        protected void onPlayModeChange(PlayMode mode) {
+        protected void onPlayModeChange(PlayModeEnum mode) {
             callbackLock.run(() -> {
                 Log.d(LOG_ID, String.format("Reacting to play mode change: band is%s locked, album is%s locked",
-                        mode == PlayMode.BAND ? "" : " not",
-                        mode == PlayMode.ALBUM ? "" : " not"));
-                bandWidget.setChecked(mode == PlayMode.BAND);
-                albumWidget.setChecked(mode == PlayMode.ALBUM);
-                yearWidget.setChecked(mode == PlayMode.YEAR);
+                        mode == PlayModeEnum.BAND ? "" : " not",
+                        mode == PlayModeEnum.ALBUM ? "" : " not"));
+                bandWidget.setChecked(mode == PlayModeEnum.BAND);
+                albumWidget.setChecked(mode == PlayModeEnum.ALBUM);
+                yearWidget.setChecked(mode == PlayModeEnum.YEAR);
             });
-            messageWidget.setVisibility(View.INVISIBLE);
         }
 
         @Override
@@ -100,6 +90,12 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 playPauseWidget.setImageResource(R.drawable.ic_play_button);
             }
+        }
+
+        @Override
+        protected void onSubModeChange(int subModeIDString) {
+            Log.d(LOG_ID, String.format("Updating to new sub-mode %s", getResources().getString(subModeIDString)));
+            messageWidget.setText(subModeIDString);
         }
 
         @Override
@@ -126,28 +122,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onBandListResponse(BandListWrapper wrapper) {
+            Log.d(LOG_ID, "Received band list from backend");
             subActivityManager.runSubActivity(bandPickerId, wrapper.bands);
         }
 
         @Override
         protected void onAlbumListResponse(AlbumListWrapper wrapper) {
+            Log.d(LOG_ID, "Received album list from backend");
             subActivityManager.runSubActivity(albumPickerId, wrapper.albums);
         }
 
         @Override
         protected void onYearListResponse(YearListWrapper wrapper) {
-            ArrayList<Era> eras = new ArrayList<>();
-            Integer lastDecade = null;
-            for(int year : wrapper.years) {
-                Integer thisDecade = (year/10) * 10;
-                if (lastDecade == null || !lastDecade.equals(thisDecade)) {
-                    String label = String.format("%ds", thisDecade);
-                    eras.add(new Era(label, thisDecade, thisDecade + 9));
-                    lastDecade = thisDecade;
-                }
-                eras.add(new Era(Integer.toString(year), year, year));
-            }
-            subActivityManager.runSubActivity(yearPickerId, eras);
+            Log.d(LOG_ID, "Received year list from backend");
+            subActivityManager.runSubActivity(yearPickerId, wrapper.years);
         }
 
         @Override
@@ -191,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
 
         albumPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.AlbumChooser.getIODefinition(), a -> controller.lockSpecificAlbum(a.uid));
         bandPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.BandChooser.getIODefinition(), b -> controller.lockSpecificBand(b.uid));
-        yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), era -> controller.lockSpecificEra(era));
+        yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), era -> controller.lockSpecificYear(era));
         songChooserId = subActivityManager.addSubActivityDefinition(SongChooser.getIODefinition(), r -> onSongChooserResponse(r));
 
         // Set up the main screen
@@ -207,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
         albumWidget.setOnCheckedChangeListener((view, checked) -> onAlbumModeToggle());
         albumWidget.setOnLongClickListener(view -> onAlbumChooserRequest());
 
-        // Normal click locks/unlocks the current year.
+        // Normal click locks/unlocks the current year. Long click allows custom selection of year.
         yearWidget = findViewById(R.id.year);
         yearWidget.setOnCheckedChangeListener((view, checked) -> onYearModeToggle());
         yearWidget.setOnLongClickListener(view -> onYearChooserRequest());
@@ -218,10 +206,12 @@ public class MainActivity extends AppCompatActivity {
 
         messageWidget = findViewById(R.id.message);
 
+        // Normal click toggles play/pause. Long click changes sub-mode.
         playPauseWidget = findViewById(R.id.playPause);
         playPauseWidget.setOnClickListener(view -> onPlayPauseToggle());
         playPauseWidget.setOnLongClickListener(view -> onPlaySubModeChangeRequest());
 
+        // Normal click advances to next song. Long click brings up more navigation options.
         nextSongWidget = findViewById(R.id.next);
         nextSongWidget.setOnClickListener(view -> onNextSongRequest());
         nextSongWidget.setOnLongClickListener(view -> onSongChooserRequest());
@@ -275,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onNextSongRequest() {
-        controller.skipAhead();
+        controller.nextSong();
     }
 
     /**
@@ -313,39 +303,38 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * For songs, we use a different strategy than for bands and albums, because we have no need to query the backend.
-     * We always provide the same 2-3 options: "restart song", "next song", and (if we are in album mode) "go to first
-     * song".
+     * We always provide the same 4 options:
+     *    - Restart song
+     *    - Next song
+     *    - Jump backward
+     *    - Jump forward
+     * The UI does not care about the exact meaning of the last two -- that's up to the mode/submode backend code.
      */
     private boolean onSongChooserRequest() {
+        Log.d(LOG_ID, "Opening song navigation UI");
         subActivityManager.runSubActivity(songChooserId, Boolean.TRUE);
         return true;
     }
 
     private boolean onPlaySubModeChangeRequest() {
-        Log.d(LOG_ID, "User wants to choose play submode");
+        Log.d(LOG_ID, "User wants to change submode");
         controller.changeSubMode();
-
-        // This is really messy. We should have the backend formally report the sub-mode to the UI.
-        String currentMessage = messageWidget.getText().toString();
-        if (currentMessage.isEmpty()) {
-            messageWidget.setText(R.string.double_shot);
-        } else if (currentMessage.equals(getResources().getString(R.string.double_shot))) {
-            messageWidget.setText(R.string.block_party);
-        } else {
-            messageWidget.setText("");
-        }
         return true;
     }
 
     private void onSongChooserResponse(int songChooserCode) {
+        Log.d(LOG_ID, String.format("Got song navigation response: %s", Integer.toString(songChooserCode)));
         if (songChooserCode == SongChooser.NEXT_SONG) {
-            controller.skipAhead();
-        } else if (songChooserCode == SongChooser.THIS_SONG) {
+            controller.nextSong();
+        } else if (songChooserCode == SongChooser.RESTART_SONG) {
             controller.restartCurrentSong();
-        } else if (songChooserCode == SongChooser.FIRST_SONG) {
-            controller.restartCurrentAlbum();
+        } else if (songChooserCode == SongChooser.SKIP_BACK) {
+            controller.skipBackward();
+        } else if (songChooserCode == SongChooser.SKIP_FORWARD) {
+            controller.skipForward();
         }
     }
+
     /**
      * This method is called when the user has completed a sub-activity (e.g. has chosen a band to lock on)
      */

@@ -9,7 +9,7 @@ import java.util.List;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 
-import su.thepeople.carstereo.MusicController.PlayMode;
+import su.thepeople.carstereo.MusicController.PlayModeEnum;
 
 /**
  * This class defines the MainActivity functionality that is available from outside the UI thread.
@@ -21,11 +21,13 @@ import su.thepeople.carstereo.MusicController.PlayMode;
  */
 public abstract class MainActivityAPI extends InterThreadAPI {
 
-    public void notifyPlayModeChange(PlayMode playMode) {
+    public void notifyPlayModeChange(PlayModeEnum playMode) {
         callInterThread(cb_playMode, playMode);
     }
 
     public void notifyPlayStateChange(boolean isPlaying) { callInterThread(cb_playState, isPlaying); }
+
+    public void notifySubModeChange(int modeIDString) { callInterThread(cb_subMode, modeIDString); }
 
     public void notifyCurrentSongChange(SongInfo currentSong) {
         callInterThread(cb_currentSong, currentSong);
@@ -54,15 +56,17 @@ public abstract class MainActivityAPI extends InterThreadAPI {
     private final int cb_albumList;
     private final int cb_yearList;
     private final int cb_exception;
+    private final int cb_subMode;
 
     protected MainActivityAPI() {
-        cb_playMode = registerCallback(this::onPlayModeChange, PlayMode.class);
+        cb_playMode = registerCallback(this::onPlayModeChange, PlayModeEnum.class);
         cb_playState = registerCallback(this::onPlayStateChange, Boolean.class);
         cb_currentSong = registerCallback(this::onCurrentSongChange, SongInfo.class);
         cb_bandList = registerCallback(this::onBandListResponse, BandListWrapper.class);
         cb_albumList = registerCallback(this::onAlbumListResponse, AlbumListWrapper.class);
         cb_yearList = registerCallback(this::onYearListResponse, YearListWrapper.class);
         cb_exception = registerCallback(this::onExceptionReport, Exception.class);
+        cb_subMode = registerCallback(this::onSubModeChange, Integer.class);
     }
 
     protected Looper getLooper() {
@@ -93,9 +97,11 @@ public abstract class MainActivityAPI extends InterThreadAPI {
         }
     }
 
-    protected abstract void onPlayModeChange(PlayMode newPlayMode);
+    protected abstract void onPlayModeChange(PlayModeEnum newPlayMode);
 
     protected abstract void onPlayStateChange(boolean isPlaying);
+
+    protected abstract void onSubModeChange(int subModeIDString);
 
     protected abstract void onCurrentSongChange(SongInfo currentSong);
 

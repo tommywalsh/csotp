@@ -12,9 +12,10 @@ public class SongChooser extends AppCompatActivity {
 
     private static final String LOG_ID = "Main Activity";
 
-    public static final int FIRST_SONG = 1;
-    public static final int THIS_SONG = 2;
+    public static final int SKIP_BACK = 1;
+    public static final int RESTART_SONG = 2;
     public static final int NEXT_SONG = 3;
+    public static final int SKIP_FORWARD = 4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,13 +31,16 @@ public class SongChooser extends AppCompatActivity {
 
         ImageButton firstSongButton = findViewById(R.id.first_song);
         firstSongButton.setEnabled(bundle.getBoolean("SHOW_FIRST_SONG"));
-        firstSongButton.setOnClickListener(v -> chooseSong(FIRST_SONG));
+        firstSongButton.setOnClickListener(v -> chooseSong(SKIP_BACK));
 
         ImageButton thisSongButton = findViewById(R.id.this_song);
-        thisSongButton.setOnClickListener(v -> chooseSong(THIS_SONG));
+        thisSongButton.setOnClickListener(v -> chooseSong(RESTART_SONG));
 
         ImageButton nextSongButton = findViewById(R.id.next_song);
         nextSongButton.setOnClickListener(v -> chooseSong(NEXT_SONG));
+
+        ImageButton skipForwardButton = findViewById(R.id.skip_forward);
+        skipForwardButton.setOnClickListener(v -> chooseSong(SKIP_FORWARD));
     }
 
     private void chooseSong(int songSpecifier) {

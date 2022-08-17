@@ -15,7 +15,10 @@ import java.util.List;
 public interface SongDAO {
 
     @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY random()")
-    List<Song> getAllForBand(@NonNull Long bandId);
+    List<Song> getAllForBandShuffled(@NonNull Long bandId);
+
+    @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY year, fullPath")
+    List<Song> getAllForBandOrdered(@NonNull Long bandId);
 
     @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY random() LIMIT :maxSize")
     List<Song> getSomeForBand(@NonNull Long bandId, @NonNull Integer maxSize);

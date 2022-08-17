@@ -12,4 +12,6 @@
     <string name="next_song">Next Song</string>
     <string name="restart_this_song">Restart This Song</string>
     <string name="first_song">First Song</string>
+    <string name="decade">Decade Mode</string>
+    <string name="sequential">Sequential Mode</string>
 </resources>

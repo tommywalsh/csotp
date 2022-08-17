@@ -30,7 +30,7 @@ import su.thepeople.carstereo.data.Band;
  * Speaking generally, the ItemChooser is sent a list of objects as input. These objects are shown in a list, and the
  * user may choose one. If they do, then the chosen item is send back as output.
  *
- * Each concrete implementation only needs to to minor tweaking
+ * Each concrete implementation only needs to do minor tweaking
  */
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
@@ -73,11 +73,11 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     /**
      * A scrollable year picker
      */
-    public static class YearChooser extends ItemChooser<MainActivity.Era> {
-        @Override protected String getDisplayString(MainActivity.Era era) { return era.label; }
+    public static class YearChooser extends ItemChooser<Integer> {
+        @Override protected String getDisplayString(Integer year) { return Integer.toString(year); }
         @SuppressWarnings("rawtypes")
-        public static ActivityIODefinition<ArrayList, MainActivity.Era> getIODefinition() {
-            return ItemChooser.makeIODefinition(YearChooser.class, MainActivity.Era.class);
+        public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
+            return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
         }
     }
 
