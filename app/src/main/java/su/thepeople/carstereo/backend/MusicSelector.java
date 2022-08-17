@@ -1,5 +1,7 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.backend;
 
+import su.thepeople.carstereo.R;
+import su.thepeople.carstereo.data.SongInfo;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Database;
 
@@ -7,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * This file implements the logic of the various play modes.  There are four
+ * This file implements the logic of the various strategies for selecting music.  There are four
  *
  * - CollectionMode is the default. It plays random tracks chosen from the entire collection.
  * - AlbumMode plays a single album, in order.
@@ -16,9 +18,10 @@ import java.util.Optional;
  *
  * Each of these modes can define its own set of submodes to give custom behavior (see below)
  */
-public abstract class PlayMode {
+public abstract class MusicSelector {
     // These abstract methods are the interface used by the MusicController.
     public abstract int getSubModeIDString();
+    public abstract MusicController.PlayModeEnum getModeType();
     public abstract boolean changeSubMode(SongInfo currentSongInfo); // returns false if no change
     public abstract boolean resyncBackward(SongInfo currentSong); // false if no change
     public abstract boolean resyncForward(SongInfo currentSong); // false if no change
@@ -38,12 +41,12 @@ public abstract class PlayMode {
         return database;
     }
 
-    protected PlayMode(SongProvider songProvider, Database database) {
+    protected MusicSelector(SongProvider songProvider, Database database) {
         this.songProvider = songProvider;
         this.database = database;
     }
 
-    public static class CollectionMode extends PlayMode {
+    public static class CollectionMode extends MusicSelector {
         /**
          * The default mode is to pick songs randomly from the whole collection. But we also have:
          *  "double shot" -> Plays songs in groups of 2 by the same band
@@ -61,6 +64,9 @@ public abstract class PlayMode {
             super(new SongProvider.ShuffleProvider(database), database);
             subMode = SubMode.FULL_SHUFFLE;
         }
+
+        @Override
+        public MusicController.PlayModeEnum getModeType() { return MusicController.PlayModeEnum.SHUFFLE; }
 
         public boolean changeSubMode(SongInfo currentSongInfo) {
             switch(subMode) {
@@ -99,7 +105,7 @@ public abstract class PlayMode {
         public boolean resyncForward(SongInfo currentSong) { return false; }
     }
 
-    public static class AlbumMode extends PlayMode {
+    public static class AlbumMode extends MusicSelector {
 
         private final long albumId;
 
@@ -107,6 +113,9 @@ public abstract class PlayMode {
             super(new SongProvider.AlbumProvider(database, albumId, currentSongId), database);
             this.albumId = albumId;
         }
+
+        @Override
+        public MusicController.PlayModeEnum getModeType() { return MusicController.PlayModeEnum.ALBUM; }
 
         @Override
         public boolean changeSubMode(SongInfo currentSongInfo) { return false; }
@@ -126,7 +135,7 @@ public abstract class PlayMode {
         public boolean resyncForward(SongInfo currentSong) { return false; }
     }
 
-    public static class YearMode extends PlayMode {
+    public static class YearMode extends MusicSelector {
         /*
          * Buy default, this class plays songs from a single year.
          * However, another submode tweaks this to play songs from a single decade.
@@ -142,6 +151,9 @@ public abstract class PlayMode {
         private static int firstYearOfDecade(int year) {
             return (year / 10) * 10;  // use integer division to discard ones position
         }
+
+        @Override
+        public MusicController.PlayModeEnum getModeType() { return MusicController.PlayModeEnum.YEAR; }
 
         @Override
         public boolean changeSubMode(SongInfo currentSongInfo) {
@@ -192,7 +204,7 @@ public abstract class PlayMode {
         }
     }
 
-    public static class BandMode extends PlayMode {
+    public static class BandMode extends MusicSelector {
         /*
          * By default, we pick random songs from the same band.
          * However, another submode allows for playing all of a band's songs in sequential order.
@@ -202,6 +214,9 @@ public abstract class PlayMode {
         public BandMode(Database database, long bandId) {
             super(new SongProvider.BandShuffleProvider(database, bandId), database);
         }
+
+        @Override
+        public MusicController.PlayModeEnum getModeType() { return MusicController.PlayModeEnum.BAND; }
 
         @Override
         public boolean changeSubMode(SongInfo currentSongInfo) {
@@ -231,7 +246,7 @@ public abstract class PlayMode {
 
         @Override
         public boolean resyncForward(SongInfo currentSong) {
-            // TODO: This query is slow and causes a noticeable lag. Look into caching the list of albums
+            // TODO: This query is slow and can cause a noticeable lag. Look into caching the list of albums
             // at start time.
             if (!isShuffle) {
                 if (currentSong.album != null) {

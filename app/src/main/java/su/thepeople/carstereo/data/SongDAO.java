@@ -1,6 +1,5 @@
 package su.thepeople.carstereo.data;
 
-import androidx.annotation.NonNull;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -15,16 +14,16 @@ import java.util.List;
 public interface SongDAO {
 
     @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY random()")
-    List<Song> getAllForBandShuffled(@NonNull Long bandId);
+    List<Song> getAllForBandShuffled(Long bandId);
 
     @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY year, fullPath")
-    List<Song> getAllForBandOrdered(@NonNull Long bandId);
+    List<Song> getAllForBandOrdered(Long bandId);
 
     @Query("SELECT * FROM Song WHERE bandId = :bandId ORDER BY random() LIMIT :maxSize")
-    List<Song> getSomeForBand(@NonNull Long bandId, @NonNull Integer maxSize);
+    List<Song> getSomeForBand(Long bandId, Integer maxSize);
 
     @Query("SELECT * FROM Song WHERE albumId = :albumId ORDER BY fullPath")
-    List<Song> getAllForAlbum(@NonNull Long albumId);
+    List<Song> getAllForAlbum(Long albumId);
 
     @Query("SELECT * FROM Song ORDER BY random() LIMIT :batchSize")
     List<Song> getRandomBatch(int batchSize);

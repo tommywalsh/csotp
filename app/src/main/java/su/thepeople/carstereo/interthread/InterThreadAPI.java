@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.interthread;
 
 import android.os.Handler;
 import android.os.Looper;

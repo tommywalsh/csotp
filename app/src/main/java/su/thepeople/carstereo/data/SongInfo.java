@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.data;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,13 +15,13 @@ public class SongInfo {
     @Nullable public final Album album;
     @NonNull public final Song song;
 
-    SongInfo(@NonNull Band band, @NonNull Song song, @Nullable Album album) {
+    public SongInfo(@NonNull Band band, @NonNull Song song, @Nullable Album album) {
         this.band = band;
         this.song = song;
         this.album = album;
     }
 
-    SongInfo(@NonNull Band band, @NonNull Song song) {
+    public SongInfo(@NonNull Band band, @NonNull Song song) {
         this.band = band;
         this.song = song;
         this.album = null;

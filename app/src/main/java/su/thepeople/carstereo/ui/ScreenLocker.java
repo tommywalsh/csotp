@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.ui;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

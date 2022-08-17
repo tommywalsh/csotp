@@ -23,9 +23,6 @@ public interface AlbumDAO {
     @Query("SELECT * FROM Album ORDER BY random() LIMIT 1")
     Album getRandom();
 
-    @Query("SELECT DISTINCT year FROM Album WHERE year IS NOT NULL ORDER BY year")
-    List<Integer> getYears();
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Album album);
 }

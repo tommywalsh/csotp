@@ -1,10 +1,12 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.interthread;
 
 import android.os.Looper;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import su.thepeople.carstereo.interthread.InterThreadAPI;
 
 /**
  * Utility class for a thread that needs to accept messages from other threads in the application.

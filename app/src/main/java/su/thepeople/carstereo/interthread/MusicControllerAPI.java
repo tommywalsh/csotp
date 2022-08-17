@@ -1,4 +1,6 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.interthread;
+
+import su.thepeople.carstereo.interthread.InterThreadAPI;
 
 /**
  * This class defines the API through with other objects can send requests/commands to the Music Controller.

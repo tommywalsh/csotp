@@ -18,11 +18,11 @@ The Car Stereo of The People is based on these three principles:
  tags give large amounts of metadata, but it tends to be inconsistent and mostly useless.
  
 * There are only a handful of simple "play modes", which should be easy to cycle between with one
- touch. There is no need to provide access to low-level primitives like playlists and repeat modes.
+ touch. There is no need to provide access to low-level primitives like playlists or a repeat flag.
  
 * There should be a small number of on-screen controls, all of which should be large. Any on-screen
 information needs to be in large print.  The UI should be usable without having to concentrate on
-it, and hopefully without even needing to look directly at it. It should be about as easy/safe to 
+it, and hopefully without even needing to look directly at it. It should try to be as easy/safe to 
 use as the preset push buttons on old mechanical car radios.
 
 ### How to store music
@@ -45,34 +45,51 @@ If a song is not part of an album then it should be stored like this:
 This app does not support having multiple bands or albums for the same song file. If you really want
 that, you can simply copy (or symlink) the file into two or more different directories.
 
+This app also does not yet support compilation albums, with different bands for different songs.
+
 ### Controlling playback
 
-There are two buttons on the main screen that control playback. There is a "play/pause" button and a "next" button. 
-That's it.
+There are two buttons on the main screen that control playback. There is a "play/pause" button and 
+a "next" button. That's it.
 
-There are also a couple of other options for song navigation. If you long-press on the "next song"
-button, you'll get a chance to jump back to the beginning of the current song or the current album. 
+There are more options for song navigation. If you long-press on the "next song" button, you'll get 
+a pop-up screen with more options for moving backward and forward. 
 
 ### Controlling song selection
 
-There are three song selection modes, which each use different rules for determining which songs are
-heard in which order. They are controlled by two toggle buttons, one of which displays the band
-name, the other the album name.
+There are four song selection modes, which each use different rules for determining which songs are
+heard in which order.  The modes are turned on and off via three toggle buttons, one showing the 
+band, one the album, and one the year. 
+
+Some of these modes have additional "sub-modes" which tweak their behavior. Sub-modes are cycled
+through by long-pressing on the play/pause button.
 
 **Entire-Collection Mode** In this mode, songs are randomly selected from the entire music
-collection. This is the default mode, which is activated when neither of the two toggle buttons are
-depressed.
+collection. This is the default mode, which is activated when neither of the three toggle buttons
+are depressed.
+
+There are two additional sub-modes. "Double-Shot Weekend" plays songs in sets of two by the same
+band. "Block Party Weekend" will occasionally play a number of songs in a row by the same band.
 
 **Band Mode** In this mode, songs from the same band are randomly selected. This mode is activated
 by pressing the band toggle button. This will "lock" on whatever band is currently playing (the
 current song will keep playing). You can switch back to entire-collection mode by pressing the
 button a second time.
 
+An additional sub-mode will play songs from the band in chronological order.
+
 **Album Mode** In this mode, songs from the same album are played, in the same order that they
 appear on the album. This mode is activated by pressing the album toggle button. This will continue
 playing the current song, and then follow with whatever song comes next on the album (wrapping 
 around to the beginning of the album at the end). Again, if you press this button a second time, it
-will switch back to entire-collection mode.
+will switch back to entire-collection mode.  This mode will automatically shut itself off after all
+songs from the album have played.
+
+
+**Year Mode** In this mode, songs from the same year are randomly selected (from any band/album).
+This mode is activated and deactivated by pressing the year toggle button.
+
+An additional sub-mode will play songs from the same decade, instead of just a single year.
 
 ### More complicated operations
 
@@ -121,8 +138,8 @@ bright.
 * The stock UI is designed for touchscreen apps, and no special settings are needed to hide mouse 
 pointers, window manager decoration, etc.
 
-I picked Android over IOS because I happen to have an old Android device that was laying around. I
-only needed to add a simple 12V Bluetooth amplifier, which can be had for very cheap money.
+I picked Android over IOS et al because I happen to have an old Android device that was laying
+around. I only needed to add a simple 12V Bluetooth amplifier, which can be had for very cheap money.
 
 
 
@@ -183,7 +200,7 @@ I basically have two choices for how to listen to music:
 1) I can use an SD card smaller than my fingernail. On this, I can store like 5000 albums 
 worth of music. Then, I can have all of my music with me everywhere I go, for the rest of my life.
 
-2) I can stream music over the internet, which means I am relying on the following.
+2) I can stream music over the internet, which means I am relying on the following:
 
 * I need to having decent-speed data service any time I want to listen to music. Driving in 
 rural Vermont? No streaming.
@@ -222,9 +239,9 @@ back to the beginning of the album, instead of just continuing to play.
 
 ### Leaky abstractions
 
-I do understand that music-playing software needs to have concepts like "queues", "playlists", "shuffle",
-"repeat", and "consume" **internally**.  But, as a user, I rarely care about such things, and I don't usually want
-to adjust them all independently -- they should normally be hidden away.
+I do understand that music-playing software needs to have concepts like "queues", "playlists", 
+"shuffle", "repeat", and "consume" **internally**.  But, as a user, I rarely care about such things,
+and I don't usually want to adjust them all independently -- they should normally be hidden away.
 
 For example, there is a difference between "listening to my music collection" and "listening to one
 specific album". In the former, I want shuffle turned on, but not in the latter. But, I don't want 
@@ -238,4 +255,4 @@ situation where I felt it was appropriate to shuffle a single album. And, yet mu
 
 In summary, Android/IOS music players are apparently made by people who don't like to listen to
 music. Purpose-built car stereos are made by people who also don't like music, and in addition
-aren't particularly good at writing software. 
+aren't particularly good at writing software.

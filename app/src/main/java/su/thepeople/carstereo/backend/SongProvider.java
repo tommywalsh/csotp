@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.backend;
 
 import android.util.Log;
 
@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * A simple interface to grab a batch of songs. The caller does not need to care about what rules are being used to
- * generate the batch.
+ * A simple interface to grab a batch of songs. Each concrete implementation follows its own set
+ * of simple rules for which songs to retrieve.
  */
 public abstract class SongProvider {
 

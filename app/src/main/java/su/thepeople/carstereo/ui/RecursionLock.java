@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.ui;
 
 /**
  * This utility class can be used to avoid infinite recursion when UI widget callbacks want to update other widgets.

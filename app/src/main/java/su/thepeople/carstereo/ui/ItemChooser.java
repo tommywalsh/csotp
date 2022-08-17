@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.ui;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,7 +19,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import su.thepeople.carstereo.SubActivityManager.ActivityIODefinition;
+import su.thepeople.carstereo.R;
+import su.thepeople.carstereo.ui.SubActivityManager.ActivityIODefinition;
 import su.thepeople.carstereo.data.Album;
 import su.thepeople.carstereo.data.Band;
 
@@ -30,7 +31,11 @@ import su.thepeople.carstereo.data.Band;
  * Speaking generally, the ItemChooser is sent a list of objects as input. These objects are shown in a list, and the
  * user may choose one. If they do, then the chosen item is send back as output.
  *
- * Each concrete implementation only needs to do minor tweaking
+ * The main widget optionally offers coarse/fine scrolling using buttons. This is intended to be relatively easy to
+ * use with occasional glances at the screen. Most other scrolling solutions require continued attention on the screen,
+ * which is not what you want to have in a car stereo.
+ *
+ * Each concrete implementation only needs to do minor tweaking to adapt.
  */
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
@@ -43,6 +48,7 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
     private static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
         return new ActivityIODefinition<>(chooserClass, INPUT_KEY, ArrayList.class, OUTPUT_KEY, baseClass);
     }
+
     /**
      * A scrollable album picker
      */

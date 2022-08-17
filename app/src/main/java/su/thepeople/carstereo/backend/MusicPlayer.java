@@ -1,10 +1,12 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.backend;
 
 import android.media.MediaPlayer;
 import android.util.Log;
 
 import java.io.IOException;
 import java.util.List;
+
+import su.thepeople.carstereo.data.SongInfo;
 
 /**
  * This class is a wrapper around the Android MediaPlayer, which is an exceptionally complicated object with lots of
@@ -24,11 +26,7 @@ class MusicPlayer {
      */
     private boolean shouldBePlaying = false;
 
-    // Object that will send update messages to the UI.
-    private final MainActivityAPI mainActivity;
-
-    // Object that will send requests to the controller.
-    private final MusicControllerAPI controller;
+    private final MusicController controller;
 
     // Which song is currently playing (or if we're paused, which song will play when we unpause)?
     private SongInfo currentSong = null;
@@ -43,8 +41,7 @@ class MusicPlayer {
      */
     private List<SongInfo> playlist;
 
-    public MusicPlayer(MainActivityAPI mainActivity, MusicControllerAPI controller) {
-        this.mainActivity = mainActivity;
+    public MusicPlayer(MusicController controller) {
         this.controller = controller;
         androidPlayer = new MediaPlayer();
         androidPlayer.setLooping(false);
@@ -102,19 +99,16 @@ class MusicPlayer {
                 androidPlayer.reset();
                 currentSong = songInfo;
                 androidPlayer.setDataSource(songInfo.song.fullPath);
-                mainActivity.notifyCurrentSongChange(songInfo);
+                controller.onSongAdvance();
                 androidPlayer.prepareAsync();
             } catch (IOException e) {
                 Log.e(LOG_ID, String.format("Previously-available song was not readable from disk: %s", songInfo.song.fullPath), e);
                 Log.d(LOG_ID, "Refusing to load system player with new song. Audio will pause until user intervenes");
             }
 
-            // Ask for more songs, if necessary.
             if (playlist.isEmpty()) {
-                Log.v(LOG_ID, "Playlist has been depleted. Now replenishing");
-                controller.replenishPlaylist();
-
-                // If the playlist is not replenished successfully, switch into shuffle mode and continue
+                Log.v(LOG_ID, "Playlist has been depleted. Notifying controller.");
+                controller.onPlayerQueueEmpty();
             }
         } else {
             Log.w(LOG_ID, "Playlist is empty. No song to load into system player.");

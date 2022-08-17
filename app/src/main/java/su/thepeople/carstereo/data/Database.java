@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-import su.thepeople.carstereo.MusicScanner;
+import su.thepeople.carstereo.backend.MusicScanner;
 
 /**
  * Room-based interface to an SQL database holding information about on-disk music files.

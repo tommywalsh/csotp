@@ -1,4 +1,4 @@
-package su.thepeople.carstereo;
+package su.thepeople.carstereo.ui;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -33,6 +33,7 @@ public class SubActivityManager {
             this.outputTag = outputTag;
             this.outputClass = outputClass;
         }
+
         protected final String inputTag;
         protected final Class<? extends Serializable> inputClass;
         protected final String outputTag;
