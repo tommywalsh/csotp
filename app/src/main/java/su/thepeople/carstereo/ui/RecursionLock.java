@@ -16,4 +16,10 @@ class RecursionLock {
             isLocked = false;
         }
     }
+
+    Runnable lambda(Runnable r) {
+        return () -> {
+            run(r);
+        };
+    }
 }

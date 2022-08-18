@@ -20,4 +20,12 @@ public class Utils {
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
+
+    public static String leadingCharacters(String s, int numChars) {
+        if (s.isEmpty()) {
+            return "";
+        } else {
+            return s.substring(0, Math.min(numChars, s.length()));
+        }
+    }
 }

@@ -51,7 +51,6 @@ public class MainUI extends AppCompatActivity {
 
     private UserInputHandler userInputHandler;
     private BackendInputHandler backendInputHandler;
-    private BluetoothInputHandler audioConnectionHandler;
 
     // Other parts of the app that we need to communicate with.
     private MusicControllerAPI controller;
@@ -71,8 +70,6 @@ public class MainUI extends AppCompatActivity {
 
     private SubActivityManager subActivityManager = new SubActivityManager(this);
 
-
-
     @SuppressLint("InlinedApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,10 +77,11 @@ public class MainUI extends AppCompatActivity {
 
         Log.d(LOG_ID, "Starting Creation of app");
         backendInputHandler = new BackendInputHandler(this);
+
         musicThread = new MusicController(backendInputHandler, getApplicationContext());
         controller = musicThread.startThread();
 
-        userInputHandler = new UserInputHandler(callbackLock, controller, this);
+        userInputHandler = new UserInputHandler(controller, this);
 
         albumPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.AlbumChooser.getIODefinition(), userInputHandler::specificAlbumRequest);
         bandPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.BandChooser.getIODefinition(), userInputHandler::specificBandRequest);
@@ -101,17 +99,17 @@ public class MainUI extends AppCompatActivity {
 
         // Normal click locks/unlocks the current band. Long click allows custom selection of band.
         bandWidget = findViewById(R.id.band);
-        bandWidget.setOnCheckedChangeListener((view, checked) -> userInputHandler.bandModeToggleRequest());
+        bandWidget.setOnCheckedChangeListener((view, checked) -> callbackLock.run(userInputHandler::bandModeToggleRequest));
         bandWidget.setOnLongClickListener(view -> userInputHandler.bandChooserRequest());
 
         // Normal click locks/unlocks the current album. Long click allows custom selection of album.
         albumWidget = findViewById(R.id.album);
-        albumWidget.setOnCheckedChangeListener((view, checked) -> userInputHandler.albumModeToggleRequest());
+        albumWidget.setOnCheckedChangeListener((view, checked) -> callbackLock.run(userInputHandler::albumModeToggleRequest));
         albumWidget.setOnLongClickListener(view -> userInputHandler.albumChooserRequest());
 
         // Normal click locks/unlocks the current year. Long click allows custom selection of year.
         yearWidget = findViewById(R.id.year);
-        yearWidget.setOnCheckedChangeListener((view, checked) -> userInputHandler.yearModeToggleRequest());
+        yearWidget.setOnCheckedChangeListener((view, checked) -> callbackLock.run(userInputHandler::yearModeToggleRequest));
         yearWidget.setOnLongClickListener(view -> userInputHandler.yearChooserRequest());
 
         // Keep the song widget selected so that marquee scrolling will work.
@@ -130,9 +128,9 @@ public class MainUI extends AppCompatActivity {
         nextSongWidget.setOnClickListener(view -> userInputHandler.nextSongRequest());
         nextSongWidget.setOnLongClickListener(view -> userInputHandler.songNavigationRequest());
 
-        // Register to receive Bluetooth events
-        BluetoothInputHandler btHandler = new BluetoothInputHandler(this);
-        this.registerReceiver(btHandler, btHandler.getIntentFilter());
+        // Handle audio connection inputs
+        AudioConnectionInputHandler btHandler = new AudioConnectionInputHandler(this);
+        btHandler.registerWithSystem(this);
 
         Log.d(LOG_ID, "Main Activity created");
     }

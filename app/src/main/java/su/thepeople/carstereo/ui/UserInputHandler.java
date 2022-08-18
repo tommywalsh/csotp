@@ -14,14 +14,12 @@ import su.thepeople.carstereo.data.Band;
  */
 public class UserInputHandler {
 
-    private final RecursionLock context;
     private final MusicControllerAPI musicController;
     private final MainUI mainUI;
     private static final String LOG_ID = "User Input Handler";
 
 
-    public UserInputHandler(RecursionLock context, MusicControllerAPI controller, MainUI mainUI) {
-        this.context = context;
+    public UserInputHandler(MusicControllerAPI controller, MainUI mainUI) {
         this.musicController = controller;
         this.mainUI = mainUI;
     }
@@ -34,7 +32,7 @@ public class UserInputHandler {
      */
     public void bandModeToggleRequest() {
         Log.d(LOG_ID, "User requested band mode toggle");
-        context.run(musicController::toggleBandMode);
+        musicController.toggleBandMode();
     }
 
     public boolean bandChooserRequest() {
@@ -50,62 +48,62 @@ public class UserInputHandler {
 
     public void albumModeToggleRequest() {
         Log.d(LOG_ID, "User requested album mode toggle");
-        context.run(musicController::toggleAlbumMode);
+        musicController.toggleAlbumMode();
     }
 
     public boolean albumChooserRequest() {
         Log.d(LOG_ID, "User requested list of albums");
-        context.run(musicController::requestAlbumList);
+        musicController.requestAlbumList();
         return true;
     }
 
     public void specificAlbumRequest(Album album) {
         Log.d(LOG_ID, String.format("User requested specific album %s:%s", album.uid, album.name));
-        context.run(() -> musicController.lockSpecificAlbum(album.uid));
+        musicController.lockSpecificAlbum(album.uid);
     }
 
     public void yearModeToggleRequest() {
         Log.d(LOG_ID, "User requested year mode toggle");
-        context.run(musicController::toggleYearMode);
+        musicController.toggleYearMode();
     }
 
     public boolean yearChooserRequest() {
         Log.d(LOG_ID, "User requested list of years");
-        context.run(musicController::requestYearList);
+        musicController.requestYearList();
         return true;
     }
 
     public void specificYearRequest(int year) {
         Log.d(LOG_ID, String.format("User requested specific year %s", year));
-        context.run(() -> musicController.lockSpecificYear(year));
+        musicController.lockSpecificYear(year);
     }
 
     public void playPauseToggleRequest() {
         Log.d(LOG_ID, "User requested play/pause toggle");
-        context.run(musicController::togglePlayPause);
+        musicController.togglePlayPause();
     }
 
     public boolean skipBackwardRequest() {
         Log.d(LOG_ID, "User requested to skip backwards");
-        context.run(musicController::skipBackward);
+        musicController.skipBackward();
         return true;
     }
 
     public boolean restartSongRequest() {
         Log.d(LOG_ID, "User requested to restart song");
-        context.run(musicController::restartCurrentSong);
+        musicController.restartCurrentSong();
         return true;
     }
 
     public boolean nextSongRequest() {
         Log.d(LOG_ID, "User requested to advance to the next song");
-        context.run(musicController::nextSong);
+        musicController.nextSong();
         return true;
     }
 
     public boolean skipForwardRequest() {
         Log.d(LOG_ID, "User requested to skip forwards");
-        context.run(musicController::skipForward);
+        musicController.skipForward();
         return true;
     }
 
@@ -117,7 +115,7 @@ public class UserInputHandler {
 
     public boolean changeSubModeRequest() {
         Log.d(LOG_ID, "User requested change to sub-mode");
-        context.run(musicController::changeSubMode);
+        musicController.changeSubMode();
         return true;
     }
 }

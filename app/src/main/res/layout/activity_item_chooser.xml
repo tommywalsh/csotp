@@ -57,39 +57,39 @@
             android:layout_weight="1" />
 
         <LinearLayout
-            android:id="@+id/courseScroller"
+            android:id="@+id/coarseScroller"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="5"
             android:orientation="vertical">
 
             <Button
-                android:id="@+id/course10"
+                android:id="@+id/coarse10"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 tools:ignore="NestedWeights" />
 
             <Button
-                android:id="@+id/course30"
+                android:id="@+id/coarse30"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
             <Button
-                android:id="@+id/course50"
+                android:id="@+id/coarse50"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
             <Button
-                android:id="@+id/course70"
+                android:id="@+id/coarse70"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
             <Button
-                android:id="@+id/course90"
+                android:id="@+id/coarse90"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />

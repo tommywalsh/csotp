@@ -17,6 +17,7 @@ import android.widget.Button;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -36,46 +37,25 @@ import su.thepeople.carstereo.data.Band;
  * use with occasional glances at the screen. Most other scrolling solutions require continued attention on the screen,
  * which is not what you want to have in a car stereo.
  *
- * Each concrete implementation only needs to do minor tweaking to adapt.
+ * Each concrete implementation only needs to do minor tweaking to adapt. There are tree implementation, one each for
+ * bands, albums, and years.
  */
 public abstract class ItemChooser <T extends Serializable> extends AppCompatActivity {
 
-    private static final String LOG_ID = "Item Chooser";
-
+    // Each type of ItemChooser can implement these methods for its own data type.
     protected abstract String getDisplayString(T obj);
-    protected abstract String getCoarseAbbreviation(T obj);
-    protected abstract String getFineAbbreviation(T obj);
+    protected String getCoarseAbbreviation(T obj) { return ""; }
+    protected String getFineAbbreviation(T obj) { return ""; }
 
-    private static final String INPUT_KEY = "INPUT_LIST";
-    private static final String OUTPUT_KEY = "OUTPUT_ITEM";
-
-    private static final int COURSE_SCROLL_MINIMUM = 10;
-    private static final int FINE_SCROLL_MINIMUM = 60;
-
-    @SuppressWarnings("rawtypes")
-    private static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
-        return new ActivityIODefinition<>(chooserClass, INPUT_KEY, ArrayList.class, OUTPUT_KEY, baseClass);
-    }
-
-    /**
-     * A scrollable album picker
-     */
     public static class AlbumChooser extends ItemChooser<Album> {
         @Override protected String getDisplayString(Album a) {
             return a.name;
         }
-
-        @SuppressWarnings("rawtypes")
-        public static ActivityIODefinition<ArrayList, Album> getIODefinition() {
+        @SuppressWarnings("rawtypes") public static ActivityIODefinition<ArrayList, Album> getIODefinition() {
             return ItemChooser.makeIODefinition(AlbumChooser.class, Album.class);
         }
-        public String getCoarseAbbreviation(Album b) { return ""; }
-        public String getFineAbbreviation(Album b) { return ""; }
     }
 
-    /**
-     * A scrollable band picker
-     */
     public static class BandChooser extends ItemChooser<Band> {
         @Override protected String getDisplayString(Band b) {
             return b.name;
@@ -84,67 +64,80 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         public static ActivityIODefinition<ArrayList, Band> getIODefinition() {
             return ItemChooser.makeIODefinition(BandChooser.class, Band.class);
         }
+        @Override public String getCoarseAbbreviation(Band b) { return Utils.leadingCharacters(b.name, 1); }
+        @Override public String getFineAbbreviation(Band b) { return Utils.leadingCharacters(b.name, 2); }
+    }
 
-        public String getCoarseAbbreviation(Band b) {
-            return b.name.substring(0,1);
+    public static class YearChooser extends ItemChooser<Integer> {
+        @Override protected String getDisplayString(Integer year) {
+            return Integer.toString(year);
         }
-        public String getFineAbbreviation(Band b) {
-            return b.name.substring(0, 2);
+        @SuppressWarnings("rawtypes") public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
+            return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
+        }
+    }
+
+
+    /**
+     * This is the list of items that is presented by the ItemChooser.
+     */
+    private List<T> items;
+
+    /**
+     * Each ItemChooser screen uses a "recycler view" in order to efficiently handle large lists.
+     * Rather than allocate a UI widget for every item in the list, the Recycler view uses a
+     * relatively small set of widgets, which are dynamically re-associated with different objects
+     * as the list is scrolled through.
+     *
+     * This requires the use of a couple of custom helper classes, below.
+     */
+    private RecyclerView listView;
+
+    /**
+     * Each slot in the scrollable "recycler" list contains a view that needs to be customized to
+     * our needs by providing an implementation of the "ViewHolder" class.
+     *
+     * In our case, each view is simply a single button. So, our implementation only needs to hold
+     * one button. The button's properties are modified whenever this ViewHolder is bound to a new
+     * item.
+     */
+    private class ButtonViewHolder extends RecyclerView.ViewHolder {
+        protected final Button button;
+
+        ButtonViewHolder(@NonNull Button button) {
+            super(button);
+            this.button = button;
         }
 
+        public void associateWithItem(int itemPosition) {
+            // The button's "tag" property is used to store an index into our 'items' list.
+            button.setTag(itemPosition);
+            button.setText(getDisplayString(items.get(itemPosition)));
+        }
+
+        public int getItemIndex() {
+            return (Integer) button.getTag();
+        }
     }
 
     /**
-     * A scrollable year picker
+     * The recyclerview needs an adapter to bind to our particular view holder type and data collection.
      */
-    public static class YearChooser extends ItemChooser<Integer> {
-        @Override
-        protected String getDisplayString(Integer year) {
-            return Integer.toString(year);
-        }
-
-        @SuppressWarnings("rawtypes")
-        public static ActivityIODefinition<ArrayList, Integer> getIODefinition() {
-            return ItemChooser.makeIODefinition(YearChooser.class, Integer.class);
-        }
-
-        public String getCoarseAbbreviation(Integer b) {
-            return "";
-        }
-        public String getFineAbbreviation(Integer b) { return ""; }
-    }
-
-    private static class ViewHolder extends RecyclerView.ViewHolder {
-        protected final Button view;
-
-        ViewHolder(Button view) {
-            super(view);
-            this.view = view;
-        }
-    }
-
-    private class Adapter extends RecyclerView.Adapter<ViewHolder> {
+    private class Adapter extends RecyclerView.Adapter<ButtonViewHolder> {
 
         @Override
-        public @NonNull ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            Button view = (Button) LayoutInflater.from(parent.getContext()).inflate(R.layout.chooser_item, parent, false);
-            view.setOnClickListener(this::onItemSelect);
-            return new ViewHolder(view);
-        }
-
-        private void onItemSelect(View view) {
-            Integer listPosition = (Integer) view.getTag();
-            T item = items.get(listPosition);
-            Intent intent = new Intent();
-            intent.putExtra(OUTPUT_KEY, item);
-            setResult(Activity.RESULT_OK, intent);
-            finish();
+        public @NonNull ButtonViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // This method must create a brand new view holder, which will be bound to a particular item later.
+            Button button = (Button) LayoutInflater.from(parent.getContext()).inflate(R.layout.chooser_item, parent, false);
+            ButtonViewHolder holder = new ButtonViewHolder(button);
+            button.setOnClickListener(b -> handleUserSelection(holder.getItemIndex()));
+            return holder;
         }
 
         @Override
-        public void onBindViewHolder(ViewHolder holder, int position) {
-            holder.view.setTag(position);
-            holder.view.setText(getDisplayString(items.get(position)));
+        public void onBindViewHolder(ButtonViewHolder holder, int position) {
+            // This is called to bind (or re-bind) a list slot to a particular item in the list.
+            holder.associateWithItem(position);
         }
 
         @Override
@@ -153,81 +146,95 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Utils.hideSystemUI(this, R.id.itemPickerLayout);
+    private void handleUserSelection(int itemIndex) {
+        // When an item is selected, we want to close this screen and return the item.
+        T item = items.get(itemIndex);
+        Intent intent = new Intent();
+        intent.putExtra(OUTPUT_KEY, item);
+        setResult(Activity.RESULT_OK, intent);
+        finish();
     }
 
-    private RecyclerView listView;
-    private List<Button> courseButtons;
-    private List<Button> fineButtons;
+
+    private static final String LOG_ID = "Item Chooser";
+
+    private static final String INPUT_KEY = "INPUT_LIST";
+    private static final String OUTPUT_KEY = "OUTPUT_ITEM";
+
+    private static final int COARSE_SCROLL_MINIMUM = 10;
+    private static final int FINE_SCROLL_MINIMUM = 60;
+
+    @SuppressWarnings("rawtypes")
+    private static <S extends Serializable> ActivityIODefinition<ArrayList, S> makeIODefinition(Class<? extends ItemChooser<S>> chooserClass, Class<S> baseClass) {
+        return new ActivityIODefinition<>(chooserClass, INPUT_KEY, ArrayList.class, OUTPUT_KEY, baseClass);
+    }
+
 
     /*
-     * We divide the scroll region into 25 roughly-equal parts.
+     * We divide the scroll region into 25 roughly-equal parts, which can be scrolled to using a set
+     * of five "coarse scroll" buttons, and another set of five "fine scroll" buttons.
      *
-     * The course position will tell which fifth of the entire region we are in. Values are 0.0, 0.2, 0.4, 0.6 and 0.8.
-     * The fine position will give the position within that fifth. Again values are 0.0, 0.2, 0.4, 0.6, and 0.8.
-     *
-     * For example, if we are two-thirds through the entire list (67%), the course position would be 0.6 (because we are
-     * between 60% and 80%), and the fine position would be 0.2 (because we are more than 20%, but less than 40%,
-     * through the course interval.
-     *
-     * In other words, in the above example, we are somewhere between 64% and 68% of the entire list.
+     * The coarse-scroll button will control which fifth of the entire region we are in. That
+     * sub-region, in turn, is broken into five parts, and the fine-scroll button controls which of
+     * these parts we are in.
+     */
+    private List<Button> coarseButtons;
+    private List<Button> fineButtons;
+
+    /**
+     * Helper class to keep track of which coarse/fine scroller position we're at.
      */
     private static class ScrollPosition {
-        double coarse;
-        double fine;
-        public ScrollPosition(double coarse, double fine) {
+        int coarse;
+        int fine;
+        public ScrollPosition(int coarse, int fine) {
             this.coarse = coarse;
             this.fine = fine;
         }
     }
 
+    /**
+     * Helper function to determine where we are in the list, according to the coarse and fine
+     * scroll buttons.
+     */
     private ScrollPosition getScrollPosition() {
         int offset = listView.computeVerticalScrollOffset();
         int range = listView.computeVerticalScrollRange();
         int extent = listView.computeVerticalScrollExtent();
         if (range == 0.0 || extent == 0.0) {
-            return new ScrollPosition(0.0, 0.0);
+            return new ScrollPosition(0, 0);
         }
         Log.d(LOG_ID, String.format("After scroll, offset is %s, extent is %s, and range is %s", offset, extent, range));
         int screenCenterPos = offset + (extent / 2);
         double pct = screenCenterPos / (double)range;
 
-        double coursePosition = Math.floor(pct * 5.0) / 5.0;
-        double remainder = pct - coursePosition;
-        double finePosition = Math.floor(remainder * 25.0) / 5.0;
+        int coarseIndex = Math.min((int)(pct * 5.0), 4);
 
-        return new ScrollPosition(coursePosition, finePosition);
+        double coarseStartPct = coarseIndex * 0.2;
+        double finePct = (pct - coarseStartPct) / 0.2;
+        int fineIndex = Math.min((int)(finePct * 5.0), 4);
+
+        return new ScrollPosition(coarseIndex, fineIndex);
     }
 
+    /**
+     * After a scroll event (either a button push, or a manual scroll), we need to make sure that
+     * the scroll buttons on-screen really reflect the current displayed position.
+     */
     private void updateScrollers() {
         ScrollPosition currentPosition = getScrollPosition();
-        updateFineButtons();
+        updateFineButtons(currentPosition);
 
-        courseButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
+        coarseButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
         fineButtons.forEach(b -> b.setBackgroundResource(android.R.drawable.btn_default));
 
-        int courseIndex = (int) (currentPosition.coarse * 5.0);
-        int fineIndex = (int) (currentPosition.fine * 5.0);
-
-        courseButtons.get(courseIndex).setBackgroundResource(R.color.colorAccent);
-        fineButtons.get(fineIndex).setBackgroundResource(R.color.colorAccent);
-
+        coarseButtons.get(currentPosition.coarse).setBackgroundResource(R.color.colorAccent);
+        fineButtons.get(currentPosition.fine).setBackgroundResource(R.color.colorAccent);
     }
 
-    /*
-     * Scroll behavior:
-     *   - First scroll position is always first item, last is always last item
-     *   - Other positions are in the middle of their ranges.
-     *
-     * So, for a list of 100 items, the scroll-to positions for the course buttons will be
-     * First button for range 0-19, scrolls to 0
-     * Second button for range 20-39, scrolls to 30
-     * Third button for range 40-59, scrolls to 50
-     * Fourth button for range 60-79, scrolls to 70
-     * Fifth button for range 80-99, scrolls to 99
+    /**
+     * Each scroller button has a target item that it should scroll to. This method produces a
+     * lambda which knows how to execute that scroll movement.
      */
     private static View.OnClickListener scrollerCallback(int position, RecyclerView view) {
         return v -> {
@@ -236,70 +243,89 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
         };
     }
 
-    private void updateSingleCoarseButton(Button button, List<T> items, int topPosition, int scrollToPosition) {
-        button.setOnClickListener(scrollerCallback(scrollToPosition, listView));
-        button.setText(getCoarseAbbreviation(items.get(topPosition)));
+    private void updateButton(Button button, int position, Function<T, String> labelGetter) {
+        button.setOnClickListener(scrollerCallback(position, listView));
+        button.setText(labelGetter.apply(items.get(position)));
     }
 
-    private void updateSingleFineButton(Button button, List<T> items, int topPosition, int scrollToPosition) {
-        button.setOnClickListener(scrollerCallback(scrollToPosition, listView));
-        button.setText(getFineAbbreviation(items.get(topPosition)));
-    }
-
-
+    /**
+     * This method sets up the coarse-scroll buttons. This method is called once, at setup time.
+     *
+     * When you ask the Android scroll widget to move to a particular item, it works like this:
+     * - If the item is already on-screen, nothing happens
+     * - If the item is "off the top" of the screen, the scroll puts the item in the first position.
+     * - If the item is "off the bottom" of the screen, the item will scroll to the last position.
+     *
+     * This implies that the same scroll button can place you at slightly different places in the
+     * list, depending on the situation. This can be slightly unexpected, especially near the
+     * beginning and end of the list.
+     *
+     * So, our scroll button strategy is:
+     * - The first button always takes you to the very top of the list
+     * - The last button always takes you to the very end of the list
+     * - The middle three buttons take you to/near the 30%, 50% and 70% spots in the list.
+     */
     private void initializeCoarseButtons(List<T> items) {
         int numItems = items.size();
-        updateSingleCoarseButton(courseButtons.get(0), items, 0, 0);
-        updateSingleCoarseButton(courseButtons.get(1), items, (int)(numItems * 0.3), (int)(numItems * 0.3));
-        updateSingleCoarseButton(courseButtons.get(2), items, (int)(numItems * 0.5), (int)(numItems * 0.5));
-        updateSingleCoarseButton(courseButtons.get(3), items, (int)(numItems * 0.7), (int)(numItems * 0.7));
-        updateSingleCoarseButton(courseButtons.get(4), items, numItems - 1, numItems - 1);
+        updateButton(coarseButtons.get(0),0, this::getCoarseAbbreviation);
+        updateButton(coarseButtons.get(1),(3*numItems)/10, this::getCoarseAbbreviation);
+        updateButton(coarseButtons.get(2),(5*numItems)/10, this::getCoarseAbbreviation);
+        updateButton(coarseButtons.get(3),(7*numItems)/10, this::getCoarseAbbreviation);
+        updateButton(coarseButtons.get(4),numItems - 1, this::getCoarseAbbreviation);
     }
 
-    private void updateFineButtons() {
-        ScrollPosition position = getScrollPosition();
+    /**
+     * This method sets up the fine-scroll buttons. This method may be called many times, as the
+     * list is scrolled.
+     */
+    private void updateFineButtons(ScrollPosition position) {
         int size = items.size();
-        int topOfCoarseSpan = (int)(position.coarse * size);
+        int topOfCoarseSpan = (int)(position.coarse * size / 5.0);
         int spanLength = (int)(items.size() * 0.2);
         int lastIndex = Math.min(topOfCoarseSpan + spanLength, size - 1);
-        Log.d(LOG_ID, String.format("%s of %s means span of %s starts at %s", position.coarse, size, spanLength, topOfCoarseSpan));
-        updateSingleFineButton(fineButtons.get(0), items, topOfCoarseSpan, topOfCoarseSpan);
-        updateSingleFineButton(fineButtons.get(1), items, topOfCoarseSpan + (3*spanLength)/10, topOfCoarseSpan + (3*spanLength)/10);
-        updateSingleFineButton(fineButtons.get(2), items, topOfCoarseSpan + (5*spanLength)/10, topOfCoarseSpan + (5*spanLength)/10);
-        updateSingleFineButton(fineButtons.get(3), items, topOfCoarseSpan + (7*spanLength)/10, topOfCoarseSpan + (7*spanLength)/10);
-        updateSingleFineButton(fineButtons.get(4), items, lastIndex, lastIndex);
+        Log.d(LOG_ID, String.format("Resetting fine scroll buttons to cover %s items, starting at %s", spanLength, topOfCoarseSpan));
+        updateButton(fineButtons.get(0), topOfCoarseSpan, this::getFineAbbreviation);
+        updateButton(fineButtons.get(1), topOfCoarseSpan + (3*spanLength)/10, this::getFineAbbreviation);
+        updateButton(fineButtons.get(2), topOfCoarseSpan + (5*spanLength)/10, this::getFineAbbreviation);
+        updateButton(fineButtons.get(3), topOfCoarseSpan + (7*spanLength)/10, this::getFineAbbreviation);
+        updateButton(fineButtons.get(4), lastIndex, this::getFineAbbreviation);
     }
 
-    private List<T> items;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_item_chooser);
-
+    /**
+     * It's cumbersome to unpack inputs to Android activities. This helper function handles this work.
+     */
+    private ArrayList<T> unpackageInput() {
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
         assert bundle != null;
         Serializable untypedInput = bundle.getSerializable(INPUT_KEY);
         assert untypedInput != null;
         @SuppressWarnings("unchecked") ArrayList<T> typedInput = (ArrayList<T>)untypedInput;
-        items = typedInput;
+        return typedInput;
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        items = unpackageInput();
+
+
+        setContentView(R.layout.activity_item_chooser);
 
         listView = findViewById(R.id.itemRecycler);
         listView.setHasFixedSize(true);
-
         listView.setLayoutManager(new LinearLayoutManager(this));
         listView.setAdapter(new Adapter());
 
-        findViewById(R.id.courseScroller).setVisibility(items.size() > COURSE_SCROLL_MINIMUM ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.coarseScroller).setVisibility(items.size() > COARSE_SCROLL_MINIMUM ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.fineScroller).setVisibility(items.size() > FINE_SCROLL_MINIMUM ? View.VISIBLE : View.INVISIBLE);
 
-        if (items.size() > COURSE_SCROLL_MINIMUM) {
+        if (items.size() > COARSE_SCROLL_MINIMUM) {
 
             listView.setOnScrollChangeListener((v, x, y, x1, y1) -> updateScrollers());
 
-            courseButtons =
-                    Stream.of(R.id.course10, R.id.course30, R.id.course50, R.id.course70, R.id.course90)
+            coarseButtons =
+                    Stream.of(R.id.coarse10, R.id.coarse30, R.id.coarse50, R.id.coarse70, R.id.coarse90)
                             .map(id -> (Button) findViewById(id))
                             .collect(Collectors.toList());
 
@@ -312,4 +338,15 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
             updateScrollers();
         }
     }
+
+    /**
+     * Here we override the standard system "resume" so that we can try to hide any system UI
+     * that would otherwise obscure our UI.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Utils.hideSystemUI(this, R.id.itemPickerLayout);
+    }
+
 }
