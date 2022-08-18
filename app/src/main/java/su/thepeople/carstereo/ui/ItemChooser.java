@@ -109,13 +109,13 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
             this.button = button;
         }
 
-        public void associateWithItem(int itemPosition) {
+        protected void associateWithItem(int itemPosition) {
             // The button's "tag" property is used to store an index into our 'items' list.
             button.setTag(itemPosition);
             button.setText(getDisplayString(items.get(itemPosition)));
         }
 
-        public int getItemIndex() {
+        protected int getItemIndex() {
             return (Integer) button.getTag();
         }
     }
@@ -185,9 +185,9 @@ public abstract class ItemChooser <T extends Serializable> extends AppCompatActi
      * Helper class to keep track of which coarse/fine scroller position we're at.
      */
     private static class ScrollPosition {
-        int coarse;
-        int fine;
-        public ScrollPosition(int coarse, int fine) {
+        protected final int coarse;
+        protected final int fine;
+        protected ScrollPosition(int coarse, int fine) {
             this.coarse = coarse;
             this.fine = fine;
         }

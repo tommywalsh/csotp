@@ -70,6 +70,11 @@ public class MusicScanner {
                 });
     }
 
+    private Optional<String> getMatch(Matcher matcher, int groupNum) {
+        String matchedString = matcher.group(groupNum);
+        return Optional.ofNullable(matchedString);
+    }
+
     private void scanBandDir(long bandID, File bandDir) {
         Log.d(LOG_TAG, String.format("Scanning band directory %s", bandDir.getName()));
         Utils.dirContentsStream(bandDir)
@@ -94,7 +99,7 @@ public class MusicScanner {
                         if (!songMatcher.matches()) {
                             Log.w("Loose song does not match format: %s", fileName);
                         }
-                        String songName = songMatcher.matches() ? songMatcher.group(3) : fileName;
+                        String songName = getMatch(songMatcher, 3).orElse(fileName);
                         Integer songYear = songMatcher.matches() ? getOptionalIntegerFromString(songMatcher.group(2)) : null;
                         Song newSong = new Song(songName, f.getAbsolutePath(), bandID, null, songYear);
                         database.songDAO().insert(newSong);
@@ -119,7 +124,7 @@ public class MusicScanner {
                     if (!matcher.matches()) {
                         Log.w("Album song does not match pattern: %s", fileName);
                     }
-                    String songName = matcher.matches() ? matcher.group(3) : fileName;
+                    String songName = getMatch(matcher, 3).orElse(fileName);
                     Song newSong = new Song(songName, songFile.getAbsolutePath(), bandID, albumID, albumYear);
                     database.songDAO().insert(newSong);
                 });

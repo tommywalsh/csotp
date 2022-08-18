@@ -1,7 +1,5 @@
 package su.thepeople.carstereo.interthread;
 
-import su.thepeople.carstereo.interthread.InterThreadAPI;
-
 /**
  * This class defines the API through with other objects can send requests/commands to the Music Controller.
  *
@@ -18,10 +16,9 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
         cb_bandMode = registerCallback(this::onToggleBandMode);
         cb_albumMode = registerCallback(this::onToggleAlbumMode);
         cb_yearMode = registerCallback(this::onToggleYearMode);
-        cb_replenish = registerCallback(this::onReplenishPlaylist);
-        cb_lockSpecificBand = registerCallback(this::onLockSpecificBand, Long.class);
-        cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum, Long.class);
-        cb_lockSpecificYear = registerCallback(this::onLockSpecificYear, Integer.class);
+        cb_lockSpecificBand = registerCallback(this::onLockSpecificBand);
+        cb_lockSpecificAlbum = registerCallback(this::onLockSpecificAlbum);
+        cb_lockSpecificYear = registerCallback(this::onLockSpecificYear);
         cb_requestBands = registerCallback(this::onRequestBandList);
         cb_requestAlbums = registerCallback(this::onRequestAlbumList);
         cb_requestYears = registerCallback(this::onRequestYearList);
@@ -59,11 +56,6 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     // Ensures player is paused.
     public void forcePause() { callInterThread(cb_forcePause); }
 
-    // Generates a new batch of songs and sends them to the music player.
-    public void replenishPlaylist() {
-        callInterThread(cb_replenish);
-    }
-
     // "Locks" on the band specified (regardless of which band is currently playing)
     public void lockSpecificBand(long bandId) { callInterThread(cb_lockSpecificBand, bandId); }
 
@@ -88,7 +80,6 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     protected abstract void onToggleBandMode();
     protected abstract void onToggleAlbumMode();
     protected abstract void onToggleYearMode();
-    protected abstract void onReplenishPlaylist();
     protected abstract void onLockSpecificBand(long bandId);
     protected abstract void onLockSpecificAlbum(long albumId);
     protected abstract void onLockSpecificYear(int year);
@@ -106,7 +97,6 @@ public abstract class MusicControllerAPI extends InterThreadAPI {
     private final int cb_bandMode;
     private final int cb_albumMode;
     private final int cb_yearMode;
-    private final int cb_replenish;
     private final int cb_lockSpecificBand;
     private final int cb_lockSpecificAlbum;
     private final int cb_lockSpecificYear;

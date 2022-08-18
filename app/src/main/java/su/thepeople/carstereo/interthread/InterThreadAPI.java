@@ -30,7 +30,7 @@ import java.util.function.Consumer;
 public abstract class InterThreadAPI {
 
     private static class CallbackWrapper<T> {
-        protected Class<T> type;
+        //protected Class<T> type;
         protected Consumer<T> callback;
     }
 
@@ -55,9 +55,8 @@ public abstract class InterThreadAPI {
     }
 
     // Called by the Public Layer to associate API method calls with their inter-thread messages.
-    protected <T> int registerCallback(Consumer<T> callback, Class<T> type) {
+    protected <T> int registerCallback(Consumer<T> callback) {
         CallbackWrapper<T> wrapper = new CallbackWrapper<>();
-        wrapper.type = type;
         wrapper.callback = callback;
 
         int id = callbackWrappers.size();
@@ -68,7 +67,7 @@ public abstract class InterThreadAPI {
     // Special-case for API methods that take no input.
     protected int registerCallback(Runnable callback) {
         Consumer<Object> wrapper = o -> callback.run();
-        return registerCallback(wrapper, Object.class);
+        return registerCallback(wrapper);
     }
 
     private void callInterThreadHelper(int callbackId, Object untypedInput) {

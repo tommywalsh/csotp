@@ -16,10 +16,11 @@ public class Album implements Serializable {
     @PrimaryKey(autoGenerate = true)
     public long uid;
 
+    @Nullable
+    public final Integer year;
+
     @NonNull
     public final String name;
-
-    public final Integer year;
 
     public final long bandId;
 

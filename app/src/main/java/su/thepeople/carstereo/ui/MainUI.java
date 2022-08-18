@@ -83,6 +83,8 @@ public class MainUI extends AppCompatActivity {
 
         userInputHandler = new UserInputHandler(controller, this);
 
+        screenLocker = new ScreenLocker(this);
+
         albumPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.AlbumChooser.getIODefinition(), userInputHandler::specificAlbumRequest);
         bandPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.BandChooser.getIODefinition(), userInputHandler::specificBandRequest);
         yearPickerId = subActivityManager.addSubActivityDefinition(ItemChooser.YearChooser.getIODefinition(), userInputHandler::specificYearRequest);

@@ -53,7 +53,6 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
         musicPlayer = new MusicPlayer(this);
         try {
             database = Database.getDatabase(context);
-            //songProvider = new SongProvider.ShuffleProvider(database);
             musicSelector = new MusicSelector.CollectionMode(database);
             replenishPlaylist(true);
         } catch (NoLibraryException e) {
@@ -241,11 +240,6 @@ public class MusicController extends LooperThread<MusicControllerAPI> {
             } else {
                 enterYearLock();
             }
-        }
-
-        @Override
-        protected void onReplenishPlaylist() {
-            MusicController.this.replenishPlaylist(false);
         }
 
         @Override

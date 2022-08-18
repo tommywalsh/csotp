@@ -47,11 +47,11 @@ public abstract class UINotificationAPI extends InterThreadAPI {
     private final int cb_exception;
 
     protected UINotificationAPI() {
-        cb_statusChange = registerCallback(this::onBackendStatusChange, BackendStatus.class);
-        cb_bandList = registerCallback(this::onBandListResponse, BandListWrapper.class);
-        cb_albumList = registerCallback(this::onAlbumListResponse, AlbumListWrapper.class);
-        cb_yearList = registerCallback(this::onYearListResponse, YearListWrapper.class);
-        cb_exception = registerCallback(this::onExceptionReport, BackendException.class);
+        cb_statusChange = registerCallback(this::onBackendStatusChange);
+        cb_bandList = registerCallback(this::onBandListResponse);
+        cb_albumList = registerCallback(this::onAlbumListResponse);
+        cb_yearList = registerCallback(this::onYearListResponse);
+        cb_exception = registerCallback(this::onExceptionReport);
     }
 
     protected Looper getLooper() {

@@ -14,7 +14,7 @@ public class Song {
     public long uid;
 
     @NonNull
-    public String name;
+    public final String name;
 
     @NonNull
     public final String fullPath;
