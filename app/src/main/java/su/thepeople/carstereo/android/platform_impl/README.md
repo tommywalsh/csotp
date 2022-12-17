@@ -1,0 +1,1 @@
+This directory/module contains Android-specific specializations for all of the platform-related interfaces required by the backend.

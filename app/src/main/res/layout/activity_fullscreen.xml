@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#0099cc"
     android:orientation="vertical"
-    tools:context="su.thepeople.carstereo.ui.MainUI">
+    tools:context=".android.ui.MainUI">
 
     <ToggleButton
         android:id="@+id/band"
